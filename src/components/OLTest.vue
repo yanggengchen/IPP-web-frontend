@@ -1,18 +1,20 @@
 <template>
   <div id="oltest">
-    <div id="map">
+    <div id="map" class="map-container">
 
     </div>
   </div>
 </template>
 
 <script>
-    import "ol/ol.css";
-    import {Map, View} from "ol";
-    import TileLayer from "ol/layer/Tile";
-    import OSM from 'ol/source/OSM';
+    import "ol/ol.css"
+    import {Map, View} from "ol"
+    import proj from "ol/proj"
+    import Projection from "ol/proj/Projection"
+    import TileLayer from "ol/layer/Tile"
+    import OSM from 'ol/source/OSM'
 
-    export default {
+      export default {
         name: "OLTest",
         data() {
           return {
@@ -20,7 +22,7 @@
           };
         },
         mounted() {
-          this.map = new Map({
+          let map = new Map({
             target: "map",
             layers: [
               new TileLayer({
@@ -28,10 +30,14 @@
               })
             ],
             view: new View({
-              center: [0, 0],
-              zoom: 0,
+              center: [13517795.178894024, 3636271.15076982],
+              zoom: 16,
             })
           });
+
+          map.on('click', function (e) {
+            console.log(e.coordinate);
+          })
         }
     }
 </script>
@@ -41,11 +47,6 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  #map {
     width: 100%;
     height: 100%;
   }
