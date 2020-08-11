@@ -38,13 +38,13 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
       else this.className = "tool";
     }, "吸附");
     createWhiteSpace();
-    createButton("R", () => {
-      event.emit("routine");
-    }, "生成路径");
     createButton("A", () => {
       event.emit("area");
     }, "生成区域");
     createWhiteSpace();
+    createButton("O", () => {
+      event.emit("optimize");
+    }, "提交路径优化");
     createButton("D", () => {
       event.emit("dispatch");
     }, "提交调度");

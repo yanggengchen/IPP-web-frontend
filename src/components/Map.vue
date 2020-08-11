@@ -29,6 +29,7 @@
   import Feature from "ol/Feature"
   import LineSting from "ol/geom/LineString"
   import Point from "ol/geom/Point"
+  import Polygon from "ol/geom/Polygon"
 
   import * as style from "ol/style"
 
@@ -110,8 +111,11 @@
             stroke: new style.Stroke({
               color: "blue",
               width: 1
+            }),
+            fill: new style.Fill({
+              color: 'rgba(255,255,255,0.4)'
             })
-          });
+          })
         }
       }
     });
@@ -194,6 +198,21 @@
 
       toolbarEvent.on("switchMagnet", () => {
         tbMagnet = !tbMagnet;
+      });
+
+      toolbarEvent.on("area", () => {
+        if((POIList[0][0] === POIList[POIList.length - 1][0]) && (POIList[0][1] === POIList[POIList.length - 1][1])) {
+          let temp = POIList;
+          temp.pop();
+          let shape = new Polygon([temp]);
+          planPOI.clear();
+          planPOI.push(new Feature(shape));
+        } else {
+          let shape = new Polygon([POIList]);
+          planPOI.clear();
+          planPOI.push(new Feature(shape));
+        }
+        planStart = false;
       });
 
       // 鼠标事件
