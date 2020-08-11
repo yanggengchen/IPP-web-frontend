@@ -9,8 +9,6 @@
 <script>
     import "ol/ol.css"
     import {Map, View} from "ol"
-    import proj from "ol/proj"
-    import Projection from "ol/proj/Projection"
     import TileLayer from "ol/layer/Tile"
     import OSM from 'ol/source/OSM'
 
