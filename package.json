@@ -1,5 +1,5 @@
 {
-  "name": "seanar_project",
+  "name": "ipp-drone",
   "version": "1.0.0",
   "description": "A Vue.js project",
   "author": "kevin_wang@sjtu.edu.cn <kevin_wang@sjtu.edu.cn>",
@@ -16,6 +16,7 @@
   "devDependencies": {
     "autoprefixer": "^7.1.2",
     "axios": "latest",
+    "ol": "latest",
     "babel-core": "^6.22.1",
     "babel-helper-vue-jsx-merge-props": "^2.0.3",
     "babel-loader": "^7.1.1",
