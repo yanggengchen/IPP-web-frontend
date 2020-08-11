@@ -1,0 +1,19 @@
+.toolbar {
+  top: 65px;
+  left: .5em;
+}
+.ol-touch .toolbar {
+  top: 80px;
+}
+
+.tool {
+  position: relative;
+}
+
+.whitespace {
+  margin-top: .3rem;
+}
+
+.active {
+  background-color: rgba(0,60,136,0.7) !important;
+}

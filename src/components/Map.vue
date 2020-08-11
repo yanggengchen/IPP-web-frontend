@@ -21,6 +21,7 @@
 
   import * as interaction from "ol/interaction"
   import * as control from "ol/control"
+  import {ToolBar} from "./olToolbar/toolbar"
 
   import Collection from "ol/Collection"
   import VectorLayer from "ol/layer/Vector"
@@ -47,6 +48,8 @@
     let p = Math.pow(Math.sin(dx / 2), 2) + Math.cos(x1) * Math.cos(x2) * Math.pow(Math.sin(dy / 2), 2);
     return r * 2 * Math.asin(Math.sqrt(p));
   }
+
+
 
   function loadMap() {
     let routerParams = this.$route.params;
@@ -165,15 +168,38 @@
     // 事件
     if(!routerParams.hasOwnProperty("flightID")) {
       // 进入规划模式
+      mapLayer.getSource().setAttributions("无人机物流——规划模式");
+
       let POIList = [],
         planStart = false,
         magnet = false,
+        tbMagnet = false,
         mousepos = [],
         magMousepos = [];
 
+      let toolbarEvent = new EventEmitter();
+
+      map.addControl(new ToolBar(toolbarEvent));
+
+      // 工具栏事件
+      toolbarEvent.on("clear", () => {
+        planPOI.clear();
+        POIList = [];
+        planStart = false;
+      });
+
+      toolbarEvent.on("undo", () => {
+        kdEvents.emit("ctrlz");
+      });
+
+      toolbarEvent.on("switchMagnet", () => {
+        tbMagnet = !tbMagnet;
+      });
+
+      // 鼠标事件
       map.on("dblclick", (e) => {
         let realCoordinate = e.coordinate;
-        if(magnet) realCoordinate = magMousepos;
+        if(tbMagnet || magnet) realCoordinate = magMousepos;
         let point = new Feature(new Point(realCoordinate));
         if(!planStart) {
           POIList = [realCoordinate];
@@ -196,11 +222,10 @@
         planPOI.push(point);
         planStart = !planStart;
       });
-
       map.on("click", (e) => {
         if(!planStart) return;
         let realCoordinate = e.coordinate;
-        if(magnet) realCoordinate = magMousepos;
+        if(tbMagnet || magnet) realCoordinate = magMousepos;
         let point = new Feature(new Point(realCoordinate));
         let line = new Feature(new LineSting([POIList[POIList.length - 1], realCoordinate]));
         point.type = "POI";
@@ -213,7 +238,7 @@
         // 这段好像有BUG
         mousepos = e.coordinate;
         magMousepos = mousepos;
-        if(planStart && magnet) {
+        if(planStart && (tbMagnet || magnet)) {
           let minindex = -1;
           let mindist = -1;
           for(let i = 0; i < planPOI.getLength(); i++) {
@@ -253,6 +278,7 @@
         }
       });
 
+      // 键盘快捷键
       kdEvents.on("esc", () => {
         planPOI.clear();
         POIList = [];
@@ -328,7 +354,8 @@
         }
       });
     } else {
-      // 进入显示模式
+      // 进入实时模式
+      mapLayer.getSource().setAttributions("无人机物流——实时模式");
     }
   }
 
