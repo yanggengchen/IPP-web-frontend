@@ -10,7 +10,16 @@
     import "ol/ol.css"
     import {Map, View} from "ol"
     import TileLayer from "ol/layer/Tile"
-    import OSM from 'ol/source/OSM'
+    import VectorLayer from "ol/layer/Vector"
+    import VectorSource from "ol/source/Vector"
+    import Feature from "ol/Feature"
+    import LineSting from "ol/geom/LineString"
+    import Point from "ol/geom/Point"
+    import * as style from "ol/style"
+    import * as proj from "ol/proj"
+    import XYZ from "ol/source/XYZ"
+
+    let lastpoint = [];
 
       export default {
         name: "OLTest",
@@ -20,21 +29,49 @@
           };
         },
         mounted() {
+
+          let mapLayer = new TileLayer({
+              source: new XYZ({
+                url:'http://webrd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=8'//7,8
+              }),
+              projection: proj.get("ESPG:3857")
+            });
+
+          let vectorLayer = new VectorLayer({
+            source: new VectorSource({
+              features: []
+            })
+          });
+
           let map = new Map({
             target: "map",
             layers: [
-              new TileLayer({
-                source: new OSM()
-              })
+              mapLayer,
+              vectorLayer
             ],
             view: new View({
-              center: [13517795.178894024, 3636271.15076982],
-              zoom: 16,
+              center: [13519431.343956057, 3636153.4095382686],
+              rotation: Math.PI / 10 ,
+              zoom: 17.992819590157538,
             })
           });
 
           map.on('click', function (e) {
-            console.log(e.coordinate);
+            let arrFeatures = map.getLayers().getArray()[1].getSource().getFeatures();
+
+            if(lastpoint.length === 0)
+              arrFeatures.push(new Feature(new Point(e.coordinate)));
+            else
+              arrFeatures.push(new Feature(new LineSting([lastpoint, e.coordinate])));
+            lastpoint = e.coordinate;
+
+            map.getLayers().setAt(1, new VectorLayer({
+              source: new VectorSource({
+                features: arrFeatures
+              })
+            }));
+
+            map.render();
           })
         }
     }
