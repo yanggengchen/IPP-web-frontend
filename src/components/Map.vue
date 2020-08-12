@@ -8,6 +8,15 @@
     <div id="map" class="map-container">
     </div>
     <div v-show="mapHint.show" id="map--hint">{{mapHint.msg}}</div>
+    <div v-show="zdiInfo.show" class="zdi--container">
+      <ZoneDataInput
+        v-bind:type="zdiInfo.type"
+        v-bind:defaultValues="zdiInfo.defaultValues"
+        v-bind:onsubmit="(arg) => { zdiInfo.show = false; zdiInfo.onSubmit(arg); }"
+        v-bind:ondelete="(arg) => { zdiInfo.show = false; zdiInfo.onDelete(arg); }"
+        v-bind:onclose="() => { zdiInfo.show = false; zdiInfo.onClose(); }"
+      ></ZoneDataInput>
+    </div>
   </div>
 </template>
 
@@ -38,6 +47,7 @@
   import qs from "qs"
 
   import EventEmitter from "events"
+  import ZoneDataInput from "./zoneDataInput";
 
   let kdEvents = new EventEmitter();
   let kuEvents = new EventEmitter();
@@ -57,6 +67,25 @@
   let mapHint = {
     show: false,
     msg: ""
+  };
+
+  let zdiInfo = {
+    show: false,
+    type: "setting",
+    defaultValues: {
+      id: "",
+      type: "ban",
+      minHeight: -1
+    },
+    onSubmit(args) {
+
+    },
+    onDelete(args) {
+
+    },
+    onClose() {
+
+    }
   };
 
   function loadMap() {
@@ -173,7 +202,7 @@
               text: new style.Text({
                 text: "禁飞",
                 fill: new style.Fill({
-                  color: "white"
+                  color: feature.highlight? "black" : "white"
                 }),
               })
             })
@@ -191,17 +220,40 @@
                 width: 1
               }),
               fill: new style.Fill({
-                color: 'rgba(255,' + (feature.minHeight / 500 * 255).toString() + ',' + (feature.minHeight / 500 * 255).toString() + ',0.4)'
+                color: feature.highlight? 'rgba(255,255,255,0.4)' : 'rgba(255,' + (255 - feature.minHeight / 500 * 255).toString() + ',' + (255 - feature.minHeight / 500 * 255).toString() + ',0.4)'
               }),
               text: new style.Text({
                 text: "航高>" + feature.minHeight.toString(),
                 fill: new style.Fill({
-                  color: "white"
+                  color: feature.highlight? "black" : "white"
                 }),
               })
             })
-
           }
+        }
+        else {
+          return new style.Style({
+            image: new style.Circle({
+              radius: 5,
+              stroke: new style.Stroke({
+                color: "blue",
+                width: 1
+              })
+            }),
+            stroke: new style.Stroke({
+              color: "green",
+              width: 1
+            }),
+            fill: new style.Fill({
+              color: feature.highlight ? 'rgba(255,255,255,0.4)' : 'rgba(0, 0, 255,0.4)'
+            }),
+            text: new style.Text({
+              text: "机库停机坪",
+              fill: new style.Fill({
+                color: feature.highlight ? "black" : "white"
+              }),
+            })
+          });
         }
       }
     });
@@ -250,10 +302,25 @@
         magnet = false,
         alt = false,
         tbMagnet = false,
+        freeze = false,
         poly = false,
         mousepos = [],
         magMousepos = [],
-        interestIndex = -1;
+        interestIndex = -1,
+        zoneindex = -1;
+
+      function createZDI(type, defaultValues, onSubmit, onDelete, onClose) {
+        zdiInfo.type = type;
+        zdiInfo.defaultValues = defaultValues;
+        zdiInfo.onSubmit = onSubmit;
+        zdiInfo.onDelete = onDelete;
+        zdiInfo.onClose = () => {
+          freeze = false;
+          onClose.call(zdiInfo);
+        };
+        freeze = true;
+        zdiInfo.show = true;
+      }
 
       let toolbarEvent = new EventEmitter();
 
@@ -299,24 +366,25 @@
           return;
         }
 
-        await axios.post(
-          "http://127.0.0.1:8000/map/zone",
-          qs.stringify({
-            type: "ban",
-            vertex: POIList,
-          })
+        let x = async function() {
+        };
+
+        createZDI("create", {type: "ban"},
+          async ({type: type, "min-height": minHeight}) => {
+            await axios.post(
+              "http://127.0.0.1:8000/map/zone",
+              qs.stringify({
+                type: type,
+                vertex: POIList,
+                "min-height": minHeight
+              })
+            );
+
+            this.$router.go(0);
+          },
+          () => {},
+          () => {}
         );
-
-        let newItem = planPOI.item(0);
-        newItem.type = "restriction";
-        newItem.minHeight = -1;
-
-        zonePoly.push(
-          newItem
-        );
-
-        planPOI.clear();
-        POIList = [];
       });
 
       // 鼠标事件
@@ -372,8 +440,39 @@
         planPOI.push(point);
       });
 
+      map.on("singleclick", (e) => {
+        if(mapHint.show) { // 点击在某个区域内
+          let zone = zonePoly.item(zoneindex);
+          createZDI("setting", {
+            id: zone.id,
+            type: (zone.type === "restriction" && zone.minHeight === -1) ? "ban" : zone.type,
+            minHeight: zone.minHeight
+            },
+            async ({id: id, type: type, "min-height": minHeight}) => {
+              await axios.patch(
+                "http://127.0.0.1:8000/map/zone/" + id,
+                qs.stringify({
+                  type: type,
+                  "min-height": minHeight
+                })
+              );
+
+              this.$router.go(0);
+            },
+            async ({id: id}) => {
+              await axios.delete(
+                "http://127.0.0.1:8000/map/zone/" + id
+              );
+
+              this.$router.go(0);
+            },
+            () => {}
+          );
+        }
+      });
+
       map.on("pointermove", (e) => {
-        // 这段好像有BUG
+        // 这段好像有很多BUG
         mousepos = e.coordinate;
         magMousepos = mousepos;
 
@@ -430,17 +529,22 @@
             }
           }
         } else if(!planStart) { // 未开始新一轮规划，可查看区域信息
+          // TODO: 需要解决一下重叠区域的问题
           for(let i = 0; i < zonePoly.getLength(); i++) {
             let item = zonePoly.item(i);
             if (item.getGeometry().intersectsCoordinate(mousepos)) {
               item.highlight = true;
               zonePoly.setAt(i, item);
+              zoneindex = i;
               mapHint.show = true;
               mapHint.msg = "id: " + item.id;
             } else if(item.highlight) {
               item.highlight = false;
               zonePoly.setAt(i, item);
-              if(mapHint.msg === "id: " + item.id) mapHint.show = false;
+              if(mapHint.msg === "id: " + item.id) {
+                zoneindex = -1;
+                mapHint.show = false;
+              }
             }
           }
         }
@@ -604,6 +708,7 @@
 
   export default {
     name: "Map",
+    components: {ZoneDataInput},
     method: {
     },
     data() {
@@ -615,7 +720,8 @@
         keyup(key) {
           kuEvents.emit(key);
         },
-        mapHint: mapHint
+        mapHint: mapHint,
+        zdiInfo: zdiInfo
       };
     },
     mounted() {
@@ -644,7 +750,7 @@
 
   #map--hint {
     position: absolute;
-    z-index: 999;
+    z-index: 500;
     -moz-user-select:none; /*火狐*/
     -webkit-user-select:none; /*webkit浏览器*/
     -ms-user-select:none; /*IE10*/
@@ -660,6 +766,17 @@
 
     background-color: #383838;
     color: white;
+  }
+
+  .zdi--container {
+    position: absolute;
+
+    z-index: 999;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
   }
 
 </style>
