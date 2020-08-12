@@ -6,6 +6,10 @@ import './assets/vendor/Hint.css'
 import App from './App'
 import router from './router'
 
+import $ from 'jquery'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.min'
+
 // 兼容IE, Safari10的Promise
 import 'babel-polyfill'
 import Promise from 'es6-promise'

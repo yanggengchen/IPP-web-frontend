@@ -3,10 +3,11 @@
        v-on:keydown.esc="keydown('esc')"
        v-on:keydown.ctrl.z="keydown('ctrlz')"
        v-on:keydown.shift="keydown('shift')"
+       v-on:keydown.alt="keydown('alt')"
        v-on:keyup="keyup('shift')">
     <div id="map" class="map-container">
-
     </div>
+    <div v-show="mapHint.show" id="map--hint">{{mapHint.msg}}</div>
   </div>
 </template>
 
@@ -33,6 +34,9 @@
 
   import * as style from "ol/style"
 
+  import axios from "axios"
+  import qs from "qs"
+
   import EventEmitter from "events"
 
   let kdEvents = new EventEmitter();
@@ -50,7 +54,10 @@
     return r * 2 * Math.asin(Math.sqrt(p));
   }
 
-
+  let mapHint = {
+    show: false,
+    msg: ""
+  };
 
   function loadMap() {
     let routerParams = this.$route.params;
@@ -60,7 +67,7 @@
       source: new OSM({
         attributions: "无人机物流——地图信息"
       }),
-      projection: proj.get("ESPG:4326")
+      projection: proj.get("EPSG:4326")
     });
 
     // 初始化规划层
@@ -138,23 +145,86 @@
       })
     });
 
-    // 初始化天气层
-    let weatherPoly = new Collection();
+    // 初始化区域层
+    let zonePoly = new Collection();
 
-    let weatherLayer = new VectorLayer({
+    let zoneLayer = new VectorLayer({
       source: new VectorSource({
-        features: weatherPoly
-      })
+        features: zonePoly
+      }),
+      style(feature) {
+        if(feature.type === "restriction") {
+          if(feature.minHeight === -1) {
+            return new style.Style({
+              image: new style.Circle({
+                radius: 5,
+                stroke: new style.Stroke({
+                  color: "blue",
+                  width: 1
+                })
+              }),
+              stroke: new style.Stroke({
+                color: "red",
+                width: 1
+              }),
+              fill: new style.Fill({
+                color: feature.highlight? 'rgba(255,255,255,0.4)' : 'rgba(255,0,0,0.4)'
+              }),
+              text: new style.Text({
+                text: "禁飞",
+                fill: new style.Fill({
+                  color: "white"
+                }),
+              })
+            })
+          } else {
+            return new style.Style({
+              image: new style.Circle({
+                radius: 5,
+                stroke: new style.Stroke({
+                  color: "blue",
+                  width: 1
+                })
+              }),
+              stroke: new style.Stroke({
+                color: "yellow",
+                width: 1
+              }),
+              fill: new style.Fill({
+                color: 'rgba(255,' + (feature.minHeight / 500 * 255).toString() + ',' + (feature.minHeight / 500 * 255).toString() + ',0.4)'
+              }),
+              text: new style.Text({
+                text: "航高>" + feature.minHeight.toString(),
+                fill: new style.Fill({
+                  color: "white"
+                }),
+              })
+            })
+
+          }
+        }
+      }
     });
+
+    (async () => {
+      let doc = (await axios.get("http://127.0.0.1:8000/map/zone")).data;
+      doc.forEach((item) => {
+        let poly = new Feature(new Polygon([item.vertex]));
+        poly.type = (item.type === 0)? "restriction" : "garage";
+        if(item.type === 0) poly.minHeight = item.minHeight;
+        poly.id = item._id;
+        zonePoly.push(poly);
+      })
+    })();
 
     let map = new Map({
       target: "map",
       layers: [
         mapLayer,
-        planLayer,
+        zoneLayer,
         routineLayer,
         flightLayer,
-        weatherLayer
+        planLayer
       ],
       view: new View({
         center: [13519023.565173406, 3636438.266781322],
@@ -163,6 +233,7 @@
       }),
       interactions: new interaction.defaults({
         doubleClickZoom:false,   //屏蔽双击放大事件
+        shiftDragZoom: false
       }),
       controls: new control.defaults({
         rotate: false
@@ -177,9 +248,12 @@
       let POIList = [],
         planStart = false,
         magnet = false,
+        alt = false,
         tbMagnet = false,
+        poly = false,
         mousepos = [],
-        magMousepos = [];
+        magMousepos = [],
+        interestIndex = -1;
 
       let toolbarEvent = new EventEmitter();
 
@@ -187,9 +261,7 @@
 
       // 工具栏事件
       toolbarEvent.on("clear", () => {
-        planPOI.clear();
-        POIList = [];
-        planStart = false;
+        kdEvents.emit("esc");
       });
 
       toolbarEvent.on("undo", () => {
@@ -200,7 +272,12 @@
         tbMagnet = !tbMagnet;
       });
 
-      toolbarEvent.on("area", () => {
+      toolbarEvent.on("zone", () => {
+        if(POIList.length < 3) {
+          alert("需要大于等于3个点来创建一个区域");
+          return;
+        }
+
         if((POIList[0][0] === POIList[POIList.length - 1][0]) && (POIList[0][1] === POIList[POIList.length - 1][1])) {
           let temp = POIList;
           temp.pop();
@@ -213,6 +290,33 @@
           planPOI.push(new Feature(shape));
         }
         planStart = false;
+        poly = true;
+      });
+
+      toolbarEvent.on("map", async () => {
+        if(!poly) {
+          alert("必须先创建多边形区域");
+          return;
+        }
+
+        await axios.post(
+          "http://127.0.0.1:8000/map/zone",
+          qs.stringify({
+            type: "ban",
+            vertex: POIList,
+          })
+        );
+
+        let newItem = planPOI.item(0);
+        newItem.type = "restriction";
+        newItem.minHeight = -1;
+
+        zonePoly.push(
+          newItem
+        );
+
+        planPOI.clear();
+        POIList = [];
       });
 
       // 鼠标事件
@@ -221,30 +325,45 @@
         if(tbMagnet || magnet) realCoordinate = magMousepos;
         let point = new Feature(new Point(realCoordinate));
         if(!planStart) {
+          for(let i = 0; i < zonePoly.getLength(); i++) {
+            let item = zonePoly.item(i);
+            if (item.highlight) {
+              item.highlight = false;
+              zonePoly.setAt(i, item);
+            }
+          }
+          mapHint.show = false;
+
           POIList = [realCoordinate];
           point.type = "start";
 
           planPOI.clear();
-        } else {
+        } else if(POIList.length === 2) {
+          POIList.pop();
+          planPOI.pop();
+          return;
+        } else if(POIList.length > 2) {
           POIList.pop();
           planPOI.pop();
           planPOI.pop();
           planPOI.pop(); // 单击时会多添加两个点
-          // TODO: 发送消息
 
           if(realCoordinate[0] === POIList[0][0] && realCoordinate[1] === POIList[0][1])
             point.type = "terminal";
           else
             point.type = "end";
-        }
+        } else return;
 
         planPOI.push(point);
+
         planStart = !planStart;
+        poly = false;
       });
+
       map.on("click", (e) => {
         if(!planStart) return;
         let realCoordinate = e.coordinate;
-        if(tbMagnet || magnet) realCoordinate = magMousepos;
+        if (tbMagnet || magnet) realCoordinate = magMousepos;
         let point = new Feature(new Point(realCoordinate));
         let line = new Feature(new LineSting([POIList[POIList.length - 1], realCoordinate]));
         point.type = "POI";
@@ -257,19 +376,32 @@
         // 这段好像有BUG
         mousepos = e.coordinate;
         magMousepos = mousepos;
-        if(planStart && (tbMagnet || magnet)) {
+
+        // 进行磁铁选择
+        if(planStart && (tbMagnet || magnet || alt)) {
           let minindex = -1;
           let mindist = -1;
           for(let i = 0; i < planPOI.getLength(); i++) {
             let elt = planPOI.item(i);
             if(elt.getGeometry().getType() === "Point") {
               let coord = elt.getGeometry().getCoordinates();
+
+              if(alt && (interestIndex !== -1) && (interestIndex !== i)) {
+                let prevcoord = planPOI.item(interestIndex).getGeometry().getCoordinates();
+                if(prevcoord[0] === coord[0] && prevcoord[1] === coord[1]) {
+                  // 有BUG
+                  // 把别的点拖到它上面有的时候会交换点
+                  break;
+                }
+              }
+
               if((getDistance(coord, e.coordinate) < 1000000)) {
                 if(minindex === -1) {
                   let POI = planPOI.item(i);
                   POI.interest = true;
                   planPOI.setAt(i, POI);
                   minindex = i;
+                  interestIndex = i;
                   mindist = getDistance(coord, e.coordinate);
                   magMousepos = coord;
                 } else if(mindist > getDistance(coord, e.coordinate)) {
@@ -280,21 +412,64 @@
                   POI.interest = true;
                   planPOI.setAt(i, POI);
                   minindex = i;
+                  interestIndex = i;
                   mindist = getDistance(coord, e.coordinate);
                   magMousepos = coord;
                 } else if(elt.interest) {
                   let POI = planPOI.item(i);
                   POI.interest = false;
                   planPOI.setAt(i, POI);
+                  if(interestIndex === i) interestIndex = -1;
                 }
               } else if(elt.interest) {
                 let POI = planPOI.item(i);
                 POI.interest = false;
                 planPOI.setAt(i, POI);
+                if(interestIndex === i) interestIndex = -1;
               }
             }
           }
+        } else if(!planStart) { // 未开始新一轮规划，可查看区域信息
+          for(let i = 0; i < zonePoly.getLength(); i++) {
+            let item = zonePoly.item(i);
+            if (item.getGeometry().intersectsCoordinate(mousepos)) {
+              item.highlight = true;
+              zonePoly.setAt(i, item);
+              mapHint.show = true;
+              mapHint.msg = "id: " + item.id;
+            } else if(item.highlight) {
+              item.highlight = false;
+              zonePoly.setAt(i, item);
+              if(mapHint.msg === "id: " + item.id) mapHint.show = false;
+            }
+          }
         }
+      });
+
+      map.on("pointerdrag", (e) => {
+        if(!alt) return true;
+        if(interestIndex !== -1) {
+          let item = planPOI.item(interestIndex);
+          item.getGeometry().setCoordinates(e.coordinate);
+          planPOI.setAt(interestIndex, item);
+          let POIIndex = Math.ceil(interestIndex / 2);
+          POIList[POIIndex] = e.coordinate;
+
+          if(interestIndex !== 0) {
+            let line = planPOI.item(interestIndex - 1);
+            let co = line.getGeometry().getCoordinates();
+            co[1] = e.coordinate;
+            planPOI.setAt(interestIndex - 1, new Feature(new LineSting(co)));
+          }
+
+          if(interestIndex !== planPOI.getLength() - 1) {
+            let line = planPOI.item(interestIndex + 1);
+            let co = line.getGeometry().getCoordinates();
+            co[0] = e.coordinate;
+            planPOI.setAt(interestIndex + 1, new Feature(new LineSting(co)));
+          }
+        }
+        return false;
       });
 
       // 键盘快捷键
@@ -302,6 +477,7 @@
         planPOI.clear();
         POIList = [];
         planStart = false;
+        poly = false;
       });
 
       kdEvents.on("ctrlz", () => {
@@ -359,8 +535,56 @@
           }
         }
       });
+
+      kdEvents.on("alt", () => {
+        alt = true;
+        if (planStart) {
+          let minindex = -1;
+          let mindist = -1;
+          for (let i = 0; i < planPOI.getLength(); i++) {
+            let elt = planPOI.item(i);
+            if (elt.getGeometry().getType() === "Point") {
+              let coord = elt.getGeometry().getCoordinates();
+              if ((getDistance(coord, mousepos) < 1000000)) {
+                if (minindex === -1) {
+                  let POI = planPOI.item(i);
+                  POI.interest = true;
+                  planPOI.setAt(i, POI);
+                  minindex = i;
+                  interestIndex = i;
+                  mindist = getDistance(coord, mousepos);
+                  magMousepos = coord;
+                } else if (mindist > getDistance(coord, mousepos)) {
+                  let POI = planPOI.item(minindex);
+                  POI.interest = false;
+                  planPOI.setAt(minindex, POI);
+                  POI = planPOI.item(i);
+                  POI.interest = true;
+                  interestIndex = i;
+                  planPOI.setAt(i, POI);
+                  minindex = i;
+                  mindist = getDistance(coord, mousepos);
+                  magMousepos = coord;
+                } else if (elt.interest) {
+                  let POI = planPOI.item(i);
+                  POI.interest = false;
+                  planPOI.setAt(i, POI);
+                  if(interestIndex === i) interestIndex = -1;
+                }
+              } else if (elt.interest) {
+                let POI = planPOI.item(i);
+                POI.interest = false;
+                planPOI.setAt(i, POI);
+                if(interestIndex === i) interestIndex = -1;
+              }
+            }
+          }
+        }
+      });
+
       kuEvents.on("shift", () => {
         magnet = false;
+        alt = false;
         for(let i = 0; i < planPOI.getLength(); i++) {
           let elt = planPOI.item(i);
           if(elt.getGeometry().getType() === "Point") {
@@ -390,12 +614,21 @@
         },
         keyup(key) {
           kuEvents.emit(key);
-        }
+        },
+        mapHint: mapHint
       };
     },
     mounted() {
       // 加载地图
       loadMap.call(this);
+
+      // 全局鼠标事件
+      $(document).on("mousemove", (e) => {
+        $("#map--hint").css({
+          top: e.clientY + 10,
+          left: e.clientX + 10
+        })
+      })
     }
   }
 </script>
@@ -407,6 +640,26 @@
     left: 0;
     width: 100%;
     height: 100%;
+  }
+
+  #map--hint {
+    position: absolute;
+    z-index: 999;
+    -moz-user-select:none; /*火狐*/
+    -webkit-user-select:none; /*webkit浏览器*/
+    -ms-user-select:none; /*IE10*/
+    -khtml-user-select:none; /*早期浏览器*/
+    user-select:none;
+
+    font-size: xx-small;
+
+    padding-left: 5px;
+    padding-right: 5px;
+
+    border-radius: 5px;
+
+    background-color: #383838;
+    color: white;
   }
 
 </style>

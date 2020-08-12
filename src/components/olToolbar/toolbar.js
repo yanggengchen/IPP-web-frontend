@@ -38,8 +38,8 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
       else this.className = "tool";
     }, "吸附");
     createWhiteSpace();
-    createButton("A", () => {
-      event.emit("area");
+    createButton("Z", () => {
+      event.emit("zone");
     }, "生成区域");
     createWhiteSpace();
     createButton("O", () => {
@@ -51,6 +51,16 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
     createButton("M", () => {
       event.emit("map");
     }, "提交图块信息");
+
+    $(element).children().tooltip({
+      placement: 'right',
+      container: '#map',
+    });
+
+    $('.ol-zoom-in, .ol-zoom-out').tooltip({
+      placement: 'right',
+      container: '#map',
+    });
 
     Control.call(this, {
       element: element,

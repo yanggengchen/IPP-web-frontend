@@ -16,6 +16,10 @@
   "devDependencies": {
     "autoprefixer": "^7.1.2",
     "axios": "latest",
+    "jquery": "latest",
+    "popper.js": "latest",
+    "bootstrap": "latest",
+    "qs": "^6.9.4",
     "ol": "latest",
     "babel-core": "^6.22.1",
     "babel-helper-vue-jsx-merge-props": "^2.0.3",
