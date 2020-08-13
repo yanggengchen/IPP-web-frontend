@@ -53,15 +53,27 @@
   let kuEvents = new EventEmitter();
 
   function getDistance(p1, p2) {
-    let r = 6378137;
-    let x1 = p1[0] * Math.PI / 180;
-    let x2 = p2[0] * Math.PI / 180;
-    let y1 = p1[1] * Math.PI / 180;
-    let y2 = p2[1] * Math.PI / 180;
-    let dx = Math.abs(x1 - x2);
-    let dy = Math.abs(y1 - y2);
-    let p = Math.pow(Math.sin(dx / 2), 2) + Math.cos(x1) * Math.cos(x2) * Math.pow(Math.sin(dy / 2), 2);
-    return r * 2 * Math.asin(Math.sqrt(p));
+    let R = 6378137;
+    p1 = {
+      x: p1[0] * Math.PI / 20037508.3427892,
+      y: p1[1] * Math.PI / 20037508.3427892
+    };
+    p2 = {
+      x: p2[0] * Math.PI / 20037508.3427892,
+      y: p2[1] * Math.PI / 20037508.3427892
+    };
+
+    let p1ll = {
+        lambda: p1.x,
+        phi: Math.atan(Math.sinh(p1.y))
+      },
+      p2ll = {
+        lambda: p2.x,
+        phi: Math.atan(Math.sinh(p2.y))
+      };
+
+    let C = Math.cos(p1ll.phi) * Math.cos(p2ll.phi) * Math.cos(p1ll.lambda - p2ll.lambda) + Math.sin(p1ll.phi) * Math.sin(p2ll.phi);
+    return R * Math.acos(C);
   }
 
   let mapHint = {
@@ -162,7 +174,22 @@
     let routineLayer = new VectorLayer({
       source: new VectorSource({
         features: routinePOI
-      })
+      }),
+      style(feature) {
+        return new style.Style({
+          image: new style.Circle({
+            radius: 5,
+            fill: new style.Fill({
+              color: 'rgb(' + (0xff * feature.height / 200).toString() + ',0,' + (0xff - 0xff * feature.height / 200).toString() + ')',
+              width: 1
+            })
+          }),
+          stroke: new style.Stroke({
+            color: 'rgb(' + (0xff * feature.height / 200).toString() + ',0,' + (0xff - 0xff * feature.height / 200).toString() + ')',
+            width: 1
+          }),
+        })
+      }
     });
 
     // 初始化航线层
@@ -258,7 +285,8 @@
       }
     });
 
-    (async () => {
+    let refreshZone = async () => {
+      zonePoly.clear();
       let doc = (await axios.get("http://127.0.0.1:8000/map/zone")).data;
       doc.forEach((item) => {
         let poly = new Feature(new Polygon([item.vertex]));
@@ -267,7 +295,9 @@
         poly.id = item._id;
         zonePoly.push(poly);
       })
-    })();
+    };
+
+    refreshZone();
 
     let map = new Map({
       target: "map",
@@ -280,7 +310,7 @@
       ],
       view: new View({
         center: [13519023.565173406, 3636438.266781322],
-        rotation: Math.PI / 10,
+        rotation: /*Math.PI / 10*/ 0,
         zoom: 17.992819590157538,
       }),
       interactions: new interaction.defaults({
@@ -360,14 +390,52 @@
         poly = true;
       });
 
+      toolbarEvent.on("optimize", async () => {
+        let result = await axios.post(
+          "http://127.0.0.1:8000/map/routine?multi=true",
+          qs.stringify({
+            POI: POIList
+          })
+        );
+
+        let int = setInterval(async () => {
+          let routine = await axios.get(
+            "http://127.0.0.1:8000/map/routine/" + result.data.id
+          );
+
+          console.log(routine.data);
+          if(routine.data.status === "OK") {
+            routinePOI.clear();
+
+            let LINE = new Feature(new LineSting([POIList[0], routine.data.routine[0]]));
+            LINE.height = routine.data.height[0] / 2;
+            routinePOI.push(LINE);
+
+            routine.data.routine.forEach((r, index) => {
+              let POI = new Feature(new Point(r));
+              POI.height = routine.data.height[index];
+              routinePOI.push(POI);
+
+              if(index !== (routine.data.routine.length - 1)) {
+                let LINE = new Feature(new LineSting([r, routine.data.routine[index + 1]]));
+                LINE.height = (routine.data.height[index] + routine.data.height[index + 1]) / 2;
+                routinePOI.push(LINE);
+              }
+            });
+
+            LINE = new Feature(new LineSting([routine.data.routine[routine.data.routine.length - 1], POIList[POIList.length - 1]]));
+            LINE.height = routine.data.height[routine.data.routine.length - 1] / 2;
+            routinePOI.push(LINE);
+            clearInterval(int);
+          }
+        }, 500);
+      });
+
       toolbarEvent.on("map", async () => {
         if(!poly) {
           alert("必须先创建多边形区域");
           return;
         }
-
-        let x = async function() {
-        };
 
         createZDI("create", {type: "ban"},
           async ({type: type, "min-height": minHeight}) => {
@@ -380,7 +448,7 @@
               })
             );
 
-            this.$router.go(0);
+            refreshZone();
           },
           () => {},
           () => {}
@@ -457,14 +525,14 @@
                 })
               );
 
-              this.$router.go(0);
+              refreshZone();
             },
             async ({id: id}) => {
               await axios.delete(
                 "http://127.0.0.1:8000/map/zone/" + id
               );
 
-              this.$router.go(0);
+              refreshZone();
             },
             () => {}
           );
