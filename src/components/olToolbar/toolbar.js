@@ -6,23 +6,27 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
     const options = opt_options || {};
 
 
-    const element = document.createElement('div');
-    element.className = 'toolbar ol-unselectable ol-control';
+    const element = $("<div class='toolbar ol-unselectable ol-control'></div>");
 
-    let createButton = (text, handler, hint) => {
-      let btn = document.createElement('button');
-      if(hint) btn.setAttribute("title", hint);
-      btn.className = 'tool';
-      btn.innerHTML = text;
-      btn.addEventListener("click", handler.bind(btn), false);
-      element.appendChild(btn);
+    let createButton = (text, handler, hint, toggle = false) => {
+      let btn = $("<button class='tool'></button>");
+      if(hint) btn.attr("title", hint);
+      btn.html(text);
+      btn.on("click", handler.bind(btn[0]));
+
+      if(toggle) btn.on("click", () => {
+        if(btn.hasClass("active")) {
+          btn.removeClass("active");
+        }
+        else btn.addClass("active");
+      });
+
+      element.append(btn);
     };
 
     let createWhiteSpace = () => {
-      let ws = document.createElement('div');
-      ws.className = "whitespace";
-      ws.innerHTML = "";
-      element.appendChild(ws);
+      let ws = $("<div class='whitespace'></div>");
+      element.append(ws);
     };
 
     createButton("C", () => {
@@ -34,25 +38,16 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
     createWhiteSpace();
     createButton("M", function () {
       event.emit("switchMagnet");
-      if(this.className === "tool") this.className = "tool active";
-      else this.className = "tool";
-    }, "吸附");
-    createWhiteSpace();
-    createButton("Z", () => {
-      event.emit("zone");
-    }, "生成区域");
+    }, "吸附", true);
     createWhiteSpace();
     createButton("O", () => {
       event.emit("optimize");
     }, "提交路径优化");
-    createButton("D", () => {
-      event.emit("dispatch");
-    }, "提交调度");
-    createButton("M", () => {
-      event.emit("map");
+    createButton("Z", () => {
+      event.emit("zone");
     }, "提交图块信息");
 
-    $(element).children().tooltip({
+    element.children().tooltip({
       placement: 'right',
       container: '#map',
     });
@@ -63,7 +58,7 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
     });
 
     Control.call(this, {
-      element: element,
+      element: element[0],
       target: options.target,
     });
   }
