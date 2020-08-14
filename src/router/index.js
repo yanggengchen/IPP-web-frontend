@@ -12,25 +12,25 @@ export default new Router({
       path: '/',
       name: 'Hello',
       component: HelloWorld,
-      meta: {title: "无人机"}
+      meta: {title: "无人机物流-订单管理", disp: "订单管理"}
     },
     {
-      path: '/oltest',
-      name: 'OLTest',
-      component: OLTest,
-      meta: {title: "无人机"}
+      path: "/flight",
+      name: "Flight",
+      component: null,
+      meta: {title: "无人机物流-航路情况", disp: "航路情况"}
     },
     {
       path: "/map",
       name: "Map",
       component: Map,
-      meta: {title: "无人机物流-地图信息"}
+      meta: {title: "无人机物流-地图规划", disp: "地图规划"}
     },
     {
-      path: "/map/:flightID",
-      name: "Map",
-      component: Map,
-      meta: {title: "无人机物流-地图信息"}
+      path: "/weather",
+      name: "Weather",
+      component: null,
+      meta: {title: "无人机物流-天气分析", disp: "天气分析"}
     }
   ]
 })
