@@ -19,10 +19,10 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
 
       if(!radioGroup) {
         if (toggle) btn.on("click", () => {
-          btn.active = !btn.active;
           if (btn.active) {
             btn.removeClass("active");
           } else btn.addClass("active");
+          btn.active = !btn.active;
         });
       } else {
         if(!this.group[radioGroup]) createGroup(radioGroup, []);
@@ -121,7 +121,7 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
       createWhiteSpace(),
       createButton("<span class='vj4-icon icon-preview'></span>", () => {
         event.emit("selection")
-      }, "选择地图钉"),
+      }, "选择地图钉", true),
       createWhiteSpace(),
       createButton("<span class='vj4-icon icon-search'></span>", () => {
         event.emit("optimize");
