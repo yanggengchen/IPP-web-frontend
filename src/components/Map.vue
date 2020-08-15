@@ -459,43 +459,33 @@
       kdEvents.emit("ctrlz");
     });
 
+    toolbarEvent.on("toggleZone", () => {
+      pin = false;
+      pen = false;
+      planStart = false;
+      POIList = [];
+      planPOI.clear();
+      statusBar.status = "区域编辑模式";
+    });
+
     toolbarEvent.on("togglePin", () => {
       pin = !pin;
       if (pin) {
-        toolbar.pen.removeClass("active");
-        if (pen)
-          toolbar.group.penTools.hide();
         POIList = [];
         planPOI.clear();
         pen = false;
         planStart = false;
         statusBar.status = "地图钉模式";
-        toolbar.group.pinTools.show();
-      } else {
-        if (statusBar.status === "地图钉模式") statusBar.status = "";
-        toolbar.group.pinTools.hide();
-        POIList = [];
-        planPOI.clear();
       }
-
     });
 
     toolbarEvent.on("togglePen", () => {
       pen = !pen;
       if (pen) {
-        toolbar.pin.removeClass("active");
-        if (pin)
-          toolbar.group.pinTools.hide();
         POIList = [];
         planPOI.clear();
         pin = false;
         statusBar.status = "画笔模式";
-        toolbar.group.penTools.show();
-      } else {
-        if (statusBar.status === "画笔模式") statusBar.status = "";
-        toolbar.group.penTools.hide();
-        POIList = [];
-        planPOI.clear();
       }
     });
 
@@ -847,7 +837,7 @@
             }
           }
         }
-      } else if (!planStart) { // 未开始新一轮规划，可查看区域信息
+      } else if (!pin && !pen) { // 未开始新一轮规划，可查看区域信息
         // TODO: 需要解决一下重叠区域的问题
         for (let i = 0; i < zonePoly.getLength(); i++) {
           let item = zonePoly.item(i);

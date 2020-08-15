@@ -8,20 +8,36 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
     this.element = $("<div class='toolbar ol-unselectable ol-control'></div>");
     this.group = {};
 
-    let createButton = (text, handler, hint, toggle = false, activeHigh = true) => {
+    let createButton = (text, handler, hint, toggle = false, radioGroup = "", exact = true) => {
       let btn = $("<button class='tool'></button>");
       if(hint) btn.attr("title", hint);
       btn.html(text);
+      btn.active = !exact;
       btn.on("click", handler.bind(btn[0]));
 
-      if(activeHigh === false) btn.addClass("active");
+      if(exact === false) btn.addClass("active");
 
-      if(toggle) btn.on("click", () => {
-        if(btn.hasClass("active")) {
-          btn.removeClass("active");
-        }
-        else btn.addClass("active");
-      });
+      if(!radioGroup) {
+        if (toggle) btn.on("click", () => {
+          btn.active = !btn.active;
+          if (btn.active) {
+            btn.removeClass("active");
+          } else btn.addClass("active");
+        });
+      } else {
+        if(!this.group[radioGroup]) createGroup(radioGroup, []);
+        this.group[radioGroup].elts.push(btn);
+        btn.on("click", () => {
+          if(!btn.active) {
+            this.group[radioGroup].elts.forEach((i) => {
+              i.removeClass("active");
+              i.active = false;
+            });
+            btn.addClass("active");
+            btn.active = true;
+          }
+        })
+      }
 
       this.element.append(btn);
       return btn;
@@ -49,6 +65,23 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
       }
     };
 
+    let createAssociation = (btn, group, radioGroup = "") => {
+      if(btn.active) this.group[group].show();
+      else this.group[group].hide();
+      btn.on("click", () => {
+        if(btn.active) this.group[group].show();
+        else this.group[group].hide();
+      });
+      if(radioGroup) {
+        this.group[radioGroup].elts.forEach((e) => {
+          e.on("click", () => {
+            if(btn.active) this.group[group].show();
+            else this.group[group].hide();
+          })
+        })
+      }
+    };
+
     createButton("<span class='vj4-icon icon-delete'></span>", () => {
       event.emit("clear");
     }, "清除");
@@ -56,12 +89,15 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
       event.emit("undo");
     }, "撤销");
     createWhiteSpace();
+    createButton("<span class='vj4-icon icon-info'></span>", () => {
+      event.emit("toggleZone")
+    }, "区域编辑模式", true, "modeSwitch", false);
     this.pin = createButton("<span class='vj4-icon icon-tag'></span>", () => {
       event.emit("togglePin")
-    }, "地图钉模式", true);
+    }, "地图钉模式", true, "modeSwitch");
     this.pen = createButton("<span class='vj4-icon icon-edit'></span>", () => {
       event.emit("togglePen")
-    }, "画笔模式", true);
+    }, "画笔模式", true, "modeSwitch");
 
     createGroup("penTools", [
       createWhiteSpace(),
@@ -79,7 +115,7 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
         event.emit("zone");
       }, "提交图块信息")
     ]);
-    this.group.penTools.hide();
+    createAssociation(this.pen, "penTools", "modeSwitch");
 
     createGroup("pinTools", [
       createWhiteSpace(),
@@ -94,7 +130,7 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
         event.emit("store");
       }, "存储路径信息"),
     ]);
-    this.group.pinTools.hide();
+    createAssociation(this.pin, "pinTools", "modeSwitch");
 
     this.element.children().tooltip({
       placement: 'right',
