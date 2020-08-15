@@ -1,5 +1,5 @@
 <template>
-  <div class="panel panel-default">
+  <div class="panel panel-default" id="zdi">
     <div class="panel-header">
       <div class="close" v-on:click="onclose" style="cursor: pointer">
         x
@@ -48,27 +48,27 @@
     methods: {
       _submit() {
         this.onsubmit({
-          id: $("[name='id']").val(),
-          type: $("[name='type']").val(),
-          "min-height": $("[name='min-height']").val()
+          id: $("#zdi").find("[name='id']").val(),
+          type: $("#zdi").find("[name='type']").val(),
+          "min-height": $("#zdi").find("[name='min-height']").val()
         })
       },
       _delete() {
         this.ondelete({
-          id: $("[name='id']").val()
+          id: $("#zdi").find("[name='id']").val()
         })
       }
     },
     mounted() {
       if(this.defaultValues && this.defaultValues.type !== "restriction") {
-        $("#min-height").attr("disabled", "disabled");
+        $("#zdi").find("#min-height").attr("disabled", "disabled");
       }
 
-      $("#type").on("change", function (){
+      $("#zdi").find("#type").on("change", function (){
         if($(this).val() !== "restriction") {
-          $("#min-height").attr("disabled", "disabled");
+          $("#zdi").find("#min-height").attr("disabled", "disabled");
         } else {
-          $("#min-height").removeAttr("disabled");
+          $("#zdi").find("#min-height").removeAttr("disabled");
         }
       })
     }

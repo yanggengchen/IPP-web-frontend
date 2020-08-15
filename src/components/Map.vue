@@ -9,7 +9,7 @@
       <div id="map" class="map-container">
       </div>
       <div v-show="mapHint.show" id="map--hint">{{mapHint.msg}}</div>
-      <div v-show="zdiInfo.show" class="zdi--container">
+      <div v-show="zdiInfo.show" class="di--container">
         <ZoneDataInput
           v-bind:type="zdiInfo.type"
           v-bind:defaultValues="zdiInfo.defaultValues"
@@ -17,6 +17,15 @@
           v-bind:ondelete="(arg) => { zdiInfo.show = false; zdiInfo.onDelete(arg); }"
           v-bind:onclose="() => { zdiInfo.show = false; zdiInfo.onClose(); }"
         ></ZoneDataInput>
+      </div>
+      <div v-show="pdiInfo.show" class="di--container">
+        <PinDataInput
+          v-bind:type="pdiInfo.type"
+          v-bind:defaultValues="pdiInfo.defaultValues"
+          v-bind:onsubmit="(arg) => { pdiInfo.show = false; pdiInfo.onSubmit(arg); }"
+          v-bind:ondelete="(arg) => { pdiInfo.show = false; pdiInfo.onDelete(arg); }"
+          v-bind:onclose="() => { pdiInfo.show = false; pdiInfo.onClose(); }"
+        ></PinDataInput>
       </div>
     </div>
     <div class="footer">
@@ -52,7 +61,8 @@
   import qs from "qs"
 
   import EventEmitter from "events"
-  import ZoneDataInput from "./zoneDataInput";
+  import ZoneDataInput from "./dataInputModule/zoneDataInput";
+  import PinDataInput from "./dataInputModule/pinDataInput";
 
   import pinImg from "@/assets/vendor/icon/pin.png"
 
@@ -89,7 +99,7 @@
   };
 
   let statusBar = {
-    status: ""
+    status: "加载完毕"
   };
 
   let zdiInfo = {
@@ -108,6 +118,21 @@
     },
     onClose() {
 
+    }
+  };
+  let pdiInfo = {
+    show: false,
+    type: "setting",
+    defaultValues: {
+      id: "",
+      type: "",
+      height: 0
+    },
+    onSubmit(args) {
+    },
+    onDelete(args) {
+    },
+    onClose() {
     }
   };
 
@@ -185,19 +210,42 @@
         features: pinFeature
       }),
       style(feature) {
-        return new style.Style({
-          image: new style.Icon({
-            src: pinImg,
-            scale: 0.1,
-            anchor: [0.55, 0.8]
+        if(feature.type === "terminal")
+          return new style.Style({
+            image: new style.Icon({
+              src: pinImg,
+              scale: feature.interest? 0.15 : 0.1,
+              anchor: [0.55, 0.8]
+            })
+          });
+        else return new style.Style({
+          image: new style.Circle({
+            radius: feature.interest ? 7 : 5,
+            fill: new style.Fill({
+              color: "orange",
+              width: 1
+            })
           })
-        });
+        })
       }
     });
 
     async function refreshPin() {
+      let result = await axios.get(process.env.MAP_API_ROOT + "/map/pinpoint");
+      pinFeature.clear();
+      pinCoord = [];
 
+      result.data.forEach((point) => {
+        let feature = new Feature(new Point(point.coordinate));
+        feature.id = point._id;
+        feature.type = point.type;
+        feature.height = point.coordinate[2];
+        pinFeature.push(feature);
+        pinCoord.push(point.coordinate);
+      })
     }
+
+    refreshPin();
 
     // 初始化路径层
     let routinePOI = new Collection();
@@ -307,8 +355,8 @@
     });
 
     let refreshZone = async () => {
-      zonePoly.clear();
       let doc = (await axios.get(process.env.MAP_API_ROOT + "/map/zone")).data;
+      zonePoly.clear();
       doc.forEach((item) => {
         let poly = new Feature(new Polygon([item.vertex]));
         poly.type = (item.type === 0) ? "restriction" : "garage";
@@ -378,6 +426,24 @@
       freeze = true;
       zdiInfo.show = true;
     }
+    function createPDI(type, defaultValues, onSubmit, onDelete, onClose) {
+      pdiInfo.type = type;
+      pdiInfo.defaultValues = defaultValues;
+      pdiInfo.onSubmit = (arg) => {
+        freeze = false;
+        onSubmit.call(pdiInfo, arg);
+      };
+      pdiInfo.onDelete = (arg) => {
+        freeze = false;
+        onDelete.call(pdiInfo, arg);
+      };
+      pdiInfo.onClose = () => {
+        freeze = false;
+        onClose.call(pdiInfo);
+      };
+      freeze = true;
+      pdiInfo.show = true;
+    }
 
     let toolbarEvent = new EventEmitter();
     let toolbar = new PlanToolBar(toolbarEvent);
@@ -402,6 +468,7 @@
         POIList = [];
         planPOI.clear();
         pen = false;
+        planStart = false;
         statusBar.status = "地图钉模式";
         toolbar.group.pinTools.show();
       } else {
@@ -538,46 +605,66 @@
 
     // 鼠标事件
     map.on("dblclick", (e) => {
-      if (!pen || freeze) return;
-      let realCoordinate = e.coordinate;
-      if (tbMagnet || magnet) realCoordinate = magMousepos;
-      let point = new Feature(new Point(realCoordinate));
-      if (!planStart) {
-        for (let i = 0; i < zonePoly.getLength(); i++) {
-          let item = zonePoly.item(i);
-          if (item.highlight) {
-            item.highlight = false;
-            zonePoly.setAt(i, item);
+      if (freeze) return;
+      if(pen) {
+        let realCoordinate = e.coordinate;
+        if (tbMagnet || magnet) realCoordinate = magMousepos;
+        let point = new Feature(new Point(realCoordinate));
+        if (!planStart) {
+          for (let i = 0; i < zonePoly.getLength(); i++) {
+            let item = zonePoly.item(i);
+            if (item.highlight) {
+              item.highlight = false;
+              zonePoly.setAt(i, item);
+            }
           }
-        }
-        mapHint.show = false;
+          mapHint.show = false;
 
-        POIList = [realCoordinate];
-        point.type = "start";
+          POIList = [realCoordinate];
+          point.type = "start";
 
-        planPOI.clear();
-        routinePOI.clear();
-      } else if (POIList.length > 2) {
-        POIList.pop();
-        planPOI.pop();
-        planPOI.pop();
-        planPOI.pop(); // 单击时会多添加两个点
+          planPOI.clear();
+          routinePOI.clear();
+        } else if (POIList.length > 2) {
+          POIList.pop();
+          planPOI.pop();
+          planPOI.pop();
+          planPOI.pop(); // 单击时会多添加两个点
 
-        if (realCoordinate[0] === POIList[0][0] && realCoordinate[1] === POIList[0][1])
-          point.type = "terminal";
-        else
-          point.type = "end";
-      } else return;
+          if (realCoordinate[0] === POIList[0][0] && realCoordinate[1] === POIList[0][1])
+            point.type = "terminal";
+          else
+            point.type = "end";
+        } else return;
 
-      planPOI.push(point);
+        planPOI.push(point);
 
-      planStart = !planStart;
-      poly = false;
+        planStart = !planStart;
+        poly = false;
+      } else if(pin) {
+        createPDI("new", {
+            type: "terminal"
+          },
+          async (arg) => {
+            let result = await axios.post(
+              process.env.MAP_API_ROOT + "/map/pinpoint",
+              qs.stringify({
+                coordinate: [e.coordinate[0], e.coordinate[1], parseFloat(arg.height)],
+                type: arg.type
+              })
+            );
+
+            await refreshPin();
+          },
+          () => {},
+          () => {}
+        );
+      }
     });
 
     map.on("click", (e) => {
       if (freeze) return;
-      if (!pen) {
+      if (!pen && !pin) {
         if (mapHint.show) { // 点击在某个区域内
           let zone = zonePoly.item(zoneindex);
           createZDI("setting", {
@@ -609,15 +696,45 @@
         }
         return;
       }
-      if (!planStart) return;
-      let realCoordinate = e.coordinate;
-      if (tbMagnet || magnet) realCoordinate = magMousepos;
-      let point = new Feature(new Point(realCoordinate));
-      let line = new Feature(new LineSting([POIList[POIList.length - 1], realCoordinate]));
-      point.type = "POI";
-      POIList.push(realCoordinate);
-      planPOI.push(line);
-      planPOI.push(point);
+      else if(pen) {
+        if (!planStart) return;
+        let realCoordinate = e.coordinate;
+        if (tbMagnet || magnet) realCoordinate = magMousepos;
+        let point = new Feature(new Point(realCoordinate));
+        let line = new Feature(new LineSting([POIList[POIList.length - 1], realCoordinate]));
+        point.type = "POI";
+        POIList.push(realCoordinate);
+        planPOI.push(line);
+        planPOI.push(point);
+      }
+    });
+
+    map.on("singleclick", () => {
+      if(freeze) return;
+      if(pin && interestIndex !== -1) {
+        createPDI("setting", {
+          id: pinFeature.item(interestIndex).id,
+          type: pinFeature.item(interestIndex).type,
+          height: pinFeature.item(interestIndex).height
+        }, async (arg) => {
+          await axios.patch(
+            process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(interestIndex).id,
+            qs.stringify({
+              type: arg.type,
+              coordinate: [pinCoord[interestIndex][0], pinCoord[interestIndex][1], parseFloat(arg.height)]
+            })
+          );
+
+          refreshPin();
+
+        }, async () => {
+          await axios.delete(
+            process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(interestIndex).id,
+          );
+
+          refreshPin();
+        }, () => {})
+      }
     });
 
     map.on("pointermove", (e) => {
@@ -628,7 +745,7 @@
       magMousepos = mousepos;
 
       // 进行磁铁选择
-      if (planStart && (((tbMagnet || magnet) && pen) || ctrl || tbEdit)) {
+      if (pen && planStart && (((tbMagnet || magnet) && pen) || ctrl || tbEdit)) {
         let minindex = -1;
         let mindist = -1;
         for (let i = 0; i < planPOI.getLength(); i++) {
@@ -679,6 +796,57 @@
             }
           }
         }
+      } else if(pin) {
+        let minindex = -1;
+        let mindist = -1;
+        for (let i = 0; i < pinFeature.getLength(); i++) {
+          let elt = pinFeature.item(i);
+          if (elt.getGeometry().getType() === "Point") {
+            let coord = elt.getGeometry().getCoordinates();
+
+            if ((ctrl || tbEdit) && (interestIndex !== -1) && (interestIndex !== i)) {
+              let prevcoord = pinFeature.item(interestIndex).getGeometry().getCoordinates();
+              if (prevcoord[0] === coord[0] && prevcoord[1] === coord[1]) {
+                // 有BUG
+                // 把别的点拖到它上面有的时候会交换点
+                break;
+              }
+            }
+
+            if ((getDistance(coord, e.coordinate) < 10)) {
+              if (minindex === -1) {
+                let POI = pinFeature.item(i);
+                POI.interest = true;
+                pinFeature.setAt(i, POI);
+                minindex = i;
+                interestIndex = i;
+                mindist = getDistance(coord, e.coordinate);
+                magMousepos = coord;
+              } else if (mindist > getDistance(coord, e.coordinate)) {
+                let POI = pinFeature.item(minindex);
+                POI.interest = false;
+                pinFeature.setAt(minindex, POI);
+                POI = pinFeature.item(i);
+                POI.interest = true;
+                pinFeature.setAt(i, POI);
+                minindex = i;
+                interestIndex = i;
+                mindist = getDistance(coord, e.coordinate);
+                magMousepos = coord;
+              } else if (elt.interest) {
+                let POI = pinFeature.item(i);
+                POI.interest = false;
+                pinFeature.setAt(i, POI);
+                if (interestIndex === i) interestIndex = -1;
+              }
+            } else if (elt.interest) {
+              let POI = pinFeature.item(i);
+              POI.interest = false;
+              pinFeature.setAt(i, POI);
+              if (interestIndex === i) interestIndex = -1;
+            }
+          }
+        }
       } else if (!planStart) { // 未开始新一轮规划，可查看区域信息
         // TODO: 需要解决一下重叠区域的问题
         for (let i = 0; i < zonePoly.getLength(); i++) {
@@ -713,30 +881,55 @@
       mapHint.show = false;
     });
 
+    let submitIntervals = {};
     map.on("pointerdrag", (e) => {
-      if (!(ctrl || tbEdit)) return true;
-      if (interestIndex !== -1) {
-        let item = planPOI.item(interestIndex);
-        item.getGeometry().setCoordinates(e.coordinate);
-        planPOI.setAt(interestIndex, item);
-        let POIIndex = Math.ceil(interestIndex / 2);
-        POIList[POIIndex] = e.coordinate;
+      if (pen && (ctrl || tbEdit)) {
+        if (interestIndex !== -1) {
+          let item = planPOI.item(interestIndex);
+          item.getGeometry().setCoordinates(e.coordinate);
+          planPOI.setAt(interestIndex, item);
+          let POIIndex = Math.ceil(interestIndex / 2);
+          POIList[POIIndex] = e.coordinate;
 
-        if (interestIndex !== 0) {
-          let line = planPOI.item(interestIndex - 1);
-          let co = line.getGeometry().getCoordinates();
-          co[1] = e.coordinate;
-          planPOI.setAt(interestIndex - 1, new Feature(new LineSting(co)));
+          if (interestIndex !== 0) {
+            let line = planPOI.item(interestIndex - 1);
+            let co = line.getGeometry().getCoordinates();
+            co[1] = e.coordinate;
+            planPOI.setAt(interestIndex - 1, new Feature(new LineSting(co)));
+          }
+
+          if (interestIndex !== planPOI.getLength() - 1) {
+            let line = planPOI.item(interestIndex + 1);
+            let co = line.getGeometry().getCoordinates();
+            co[0] = e.coordinate;
+            planPOI.setAt(interestIndex + 1, new Feature(new LineSting(co)));
+          }
         }
+        return false;
+      } else if(pin) {
+        if(interestIndex !== -1) {
+          pinCoord[interestIndex] = e.coordinate;
+          let point = pinFeature.item(interestIndex);
+          point.getGeometry().setCoordinates(e.coordinate);
+          pinFeature.setAt(interestIndex, point);
 
-        if (interestIndex !== planPOI.getLength() - 1) {
-          let line = planPOI.item(interestIndex + 1);
-          let co = line.getGeometry().getCoordinates();
-          co[0] = e.coordinate;
-          planPOI.setAt(interestIndex + 1, new Feature(new LineSting(co)));
+          if(submitIntervals[interestIndex]) clearInterval(submitIntervals[interestIndex]);
+          let curIndex = interestIndex;
+          submitIntervals[curIndex] = setInterval(async () => {
+            await axios.patch(
+              process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(curIndex).id,
+              qs.stringify({
+                coordinate: [pinCoord[curIndex][0], pinCoord[curIndex][1], pinFeature.item(curIndex).height]
+              })
+            );
+
+            await refreshPin();
+            clearInterval(submitIntervals[curIndex]);
+          }, 500);
+          return false;
         }
       }
-      return false;
+      return true;
     });
 
     // 键盘快捷键
@@ -805,7 +998,7 @@
 
     kdEvents.on("ctrl", () => {
       ctrl = true;
-      if (planStart) {
+      if (planStart && pen) {
         let minindex = -1;
         let mindist = -1;
         for (let i = 0; i < planPOI.getLength(); i++) {
@@ -867,7 +1060,7 @@
 
   export default {
     name: "Map",
-    components: {ZoneDataInput},
+    components: {ZoneDataInput, PinDataInput},
     method: {},
     data() {
       return {
@@ -878,8 +1071,9 @@
         keyup(key) {
           kuEvents.emit(key);
         },
-        mapHint: mapHint,
-        zdiInfo: zdiInfo,
+        mapHint,
+        zdiInfo,
+        pdiInfo,
         statusBar
       };
     },
@@ -920,7 +1114,7 @@
     color: white;
   }
 
-  .zdi--container {
+  .di--container {
     position: absolute;
 
     z-index: 999;
