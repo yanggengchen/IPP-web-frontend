@@ -436,6 +436,7 @@
     }
 
     function createPDI(type, defaultValues, onSubmit, onDelete, onClose) {
+      routinePOI.clear();
       pdiInfo.type = type;
       pdiInfo.defaultValues = defaultValues;
       pdiInfo.onSubmit = (arg) => {
@@ -519,8 +520,12 @@
       }
     });
 
-    let optInterval = 0;
+    let viewRoutine = true;
+    toolbarEvent.on("toggleViewRoutine", () => {
+      viewRoutine = !viewRoutine;
+    });
 
+    let optInterval = 0;
     toolbarEvent.on("optimize", async () => {
       if(pen) {
         clearInterval(optInterval);
@@ -625,6 +630,25 @@
           }, 500);
         }
       }
+    });
+
+    toolbarEvent.on("store", async () => {
+      if(!pin || !pinSelectMode || pinSelection.length !== 2 || !routineID) return;
+      try {
+        let result = await axios.post(
+          process.env.MAP_API_ROOT + "/map/path",
+          qs.stringify({
+            routine: routineID,
+            from: pinFeature.item(pinSelection[0]).id,
+            to: pinFeature.item(pinSelection[1]).id
+          })
+        );
+      } catch(e) {
+        statusBar.status = "路径已存在"
+      }
+
+      routinePOI.clear();
+      clearPinInterest();
     });
 
     toolbarEvent.on("zone", async () => {
@@ -878,9 +902,11 @@
             }
           }
         }
-      } else if (pin) {
+      }
+      else if (pin) {
         let minindex = -1;
         let mindist = -1;
+        let preindex = interestIndex;
         for (let i = 0; i < pinFeature.getLength(); i++) {
           let elt = pinFeature.item(i);
           if (elt.getGeometry().getType() === "Point") {
@@ -931,7 +957,48 @@
             }
           }
         }
-      } else if (!pin && !pen) { // 未开始新一轮规划，可查看区域信息
+        if(interestIndex === -1) {
+          routinePOI.clear();
+        }
+        if(viewRoutine) {
+          setTimeout(async () => {
+            if(interestIndex !== preindex && interestIndex !== -1) {
+                let result = await axios.get(
+                  process.env.MAP_API_ROOT + "/map/path/" + pinFeature.item(interestIndex).id
+                );
+
+                routinePOI.clear();
+                routineID = "";
+                result.data.forEach(async (path) => {
+                  let routine = await axios.get(
+                    process.env.MAP_API_ROOT + "/map/routine/" + path.routine
+                  );
+
+                  let LINE = new Feature(new LineSting([routine.data.POI[0], routine.data.routine[0]]));
+                  LINE.height = routine.data.height[0] / 2;
+                  routinePOI.push(LINE);
+
+                  routine.data.routine.forEach((r, index) => {
+                    let POI = new Feature(new Point(r));
+                    POI.height = routine.data.height[index];
+                    routinePOI.push(POI);
+
+                    if (index !== (routine.data.routine.length - 1)) {
+                      let LINE = new Feature(new LineSting([r, routine.data.routine[index + 1]]));
+                      LINE.height = (routine.data.height[index] + routine.data.height[index + 1]) / 2;
+                      routinePOI.push(LINE);
+                    }
+                  });
+
+                  LINE = new Feature(new LineSting([routine.data.routine[routine.data.routine.length - 1], routine.data.POI[1]]));
+                  LINE.height = routine.data.height[routine.data.routine.length - 1] / 2;
+                  routinePOI.push(LINE);
+                })
+            }
+          });
+        }
+      }
+      else if (!pin && !pen) { // 未开始新一轮规划，可查看区域信息
         for (let i = 0; i < zonePoly.getLength(); i++) {
           let item = zonePoly.item(i);
           if (item.getGeometry().intersectsCoordinate(mousepos)) {
@@ -964,7 +1031,6 @@
       mapHint.show = false;
     });
 
-    let submitIntervals = {};
     map.on("pointerdrag", (e) => {
       if (pen && (ctrl || tbEdit)) {
         if (interestIndex !== -1) {
@@ -989,31 +1055,6 @@
           }
         }
         return false;
-      }
-      else if (pin && !pinSelectMode) {
-        routinePOI.clear();
-        routineID = "";
-        if (interestIndex !== -1) {
-          pinCoord[interestIndex] = e.coordinate;
-          let point = pinFeature.item(interestIndex);
-          point.getGeometry().setCoordinates(e.coordinate);
-          pinFeature.setAt(interestIndex, point);
-
-          if (submitIntervals[interestIndex]) clearInterval(submitIntervals[interestIndex]);
-          let curIndex = interestIndex;
-          submitIntervals[curIndex] = setInterval(async () => {
-            await axios.patch(
-              process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(curIndex).id,
-              qs.stringify({
-                coordinate: [pinCoord[curIndex][0], pinCoord[curIndex][1], pinFeature.item(curIndex).height]
-              })
-            );
-
-            await refreshPin();
-            clearInterval(submitIntervals[curIndex]);
-          }, 500);
-          return false;
-        }
       }
       return true;
     });

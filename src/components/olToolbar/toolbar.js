@@ -119,9 +119,12 @@ export var PlanToolBar = /*@__PURE__*/(function (Control) {
 
     createGroup("pinTools", [
       createWhiteSpace(),
-      createButton("<span class='vj4-icon icon-preview'></span>", () => {
+      createButton("<span class='vj4-icon icon-circle--outline'></span>", () => {
         event.emit("selection")
       }, "选择地图钉", true),
+      createButton("<span class='vj4-icon icon-preview'></span>", () => {
+        event.emit("toggleViewRoutine")
+      }, "查看连接路线", true, "", false),
       createWhiteSpace(),
       createButton("<span class='vj4-icon icon-search'></span>", () => {
         event.emit("optimize");
