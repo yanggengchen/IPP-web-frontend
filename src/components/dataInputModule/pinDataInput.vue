@@ -29,7 +29,7 @@
           <label for="height">
             坐标高度:
           </label>
-          <input type="text" name="height" class="form-control" id="height" v-bind:value="defaultValues.height || 0"/>
+          <input type="text" name="height" class="form-control" id="height" v-bind:value="defaultValues.height || 0" :disabled="type === 'setting'"/>
         </div>
         <div style="text-align: center;">
           <button type="button" id="submit" class="btn-dark" v-on:click="_submit">提交</button>
