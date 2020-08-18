@@ -7,6 +7,7 @@
           <router-link v-for="(router, index) in routers" :to="{name: router.name}" class="nav--item" exact tag="li"
                        :key="index">{{router.meta.disp}}
           </router-link>
+          <li class="nav--item right"><a href="/#/">退出登录</a></li>
         </ul>
       </nav>
       <router-view class="main"/>
@@ -20,7 +21,7 @@
             </h3>
           </div>
           <div class="panel-body">
-            <form role="form" class="form-horizontal">
+            <form role="form" class="form-horizontal" @submit.prevent="submit">
               <div class="form-group form-row">
                 <label for="username">
                   用户名:
@@ -33,9 +34,15 @@
                 </label>
                 <input type="password" class="form-control" name="password" id="password" required v-model="form.password">
               </div>
+              <div class="checkbox form-row">
+                <label for="remember">
+                  <input type="checkbox" name="remember" id="remember" v-model="form.remember">
+                    记住我
+                </label>
+              </div>
               <div style="text-align: center;">
                 <p class="help-block red" v-if="loginStatus.fail">登陆失败</p>
-                <button type="button" id="submit" class="btn-default" v-on:click="submit">登录</button>
+                <button type="submit" id="submit" class="btn-default">登录</button>
               </div>
             </form>
           </div>
@@ -57,12 +64,16 @@
       async submit() {
         let result = await axios.post(process.env.AUTH_API_ROOT + "/auth?json=true", qs.stringify({
           username: this.form.username,
-          password: crypto.createHash("sha256").update(this.form.password + "123").digest("base64")
+          password: crypto.createHash("sha256").update(this.form.password + "123").digest("base64"),
+          long: this.form.remember
         }));
         if(result.data.token) {
           auth.token = result.data.token;
           auth.expires = result.data.expires;
           loginStatus.fail = false;
+          if(this.form.remember) {
+            this.$cookie.set("token", result.data.token, new Date(result.data.expires));
+          }
         } else {
           loginStatus.fail = true;
         }
@@ -71,8 +82,13 @@
     data() {
       this.form = {
         username: "",
-        password: ""
+        password: "",
+        remember: false
       };
+      if(this.$cookie.get("token")) {
+        auth.token = this.$cookie.get("token");
+        auth.long = true;
+      }
       return {
         routers: this.$router.options.routes,
         auth,
@@ -133,6 +149,12 @@
     -webkit-box-pack: start;
     -ms-flex-pack: start;
     justify-content: flex-start
+  }
+
+  .right {
+    -webkit-box-pack: end;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
   }
 
   .nav--logo {

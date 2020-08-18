@@ -1,6 +1,8 @@
 // The Vue build version to load with the `import` command
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
+import VueCookie from 'vue-cookie'
+Vue.use(VueCookie);
 import './assets/style.css'
 import './assets/vendor/Hint.css'
 import App from './App'
@@ -29,6 +31,8 @@ setInterval(async () => {
     if(result.data.token) {
       auth.token = result.data.token;
       auth.expires = result.data.expires;
+    } else {
+      auth.token = "";
     }
   }
 }, 5000);

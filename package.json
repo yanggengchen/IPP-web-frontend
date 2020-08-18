@@ -16,7 +16,7 @@
   "devDependencies": {
     "autoprefixer": "^7.1.2",
     "axios": "latest",
-    "vue-jsonp": "latest",
+    "vue-cookie": "latest",
     "jquery": "latest",
     "popper.js": "latest",
     "bootstrap": "latest",

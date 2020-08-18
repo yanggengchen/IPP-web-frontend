@@ -234,7 +234,7 @@
       let result = await axios.get(
         process.env.MAP_API_ROOT + "/map/pinpoint", {
           headers: {
-            authentication: auth.token
+            authorization: auth.token
           }
         }
       );
@@ -372,7 +372,7 @@
     let refreshZone = async () => {
       let doc = (await axios.get(process.env.MAP_API_ROOT + "/map/zone", {
         headers: {
-          authentication: auth.token
+          authorization: auth.token
         }
       })).data;
       zonePoly.clear();
@@ -547,7 +547,7 @@
             POI: POIList
           }), {
             headers: {
-              authentication: auth.token
+              authorization: auth.token
             }
           }
         );
@@ -558,7 +558,7 @@
             routine = await axios.get(
               process.env.MAP_API_ROOT + "/map/routine/" + result.data.id, {
                 headers: {
-                  authentication: auth.token
+                  authorization: auth.token
                 }
               }
             );
@@ -606,7 +606,7 @@
               POI: [pinCoord[pinSelection[0]], pinCoord[pinSelection[1]]]
             }), {
               headers: {
-                authentication: auth.token
+                authorization: auth.token
               }
             }
           );
@@ -617,7 +617,7 @@
               routine = await axios.get(
                 process.env.MAP_API_ROOT + "/map/routine/" + result.data.id, {
                   headers: {
-                    authentication: auth.token
+                    authorization: auth.token
                   }
                 }
               );
@@ -670,7 +670,7 @@
             to: pinFeature.item(pinSelection[1]).id
           }), {
             headers: {
-              authentication: auth.token
+              authorization: auth.token
             }
           }
         );
@@ -712,7 +712,7 @@
               "min-height": minHeight
             }), {
               headers: {
-                authentication: auth.token
+                authorization: auth.token
               }
             }
           );
@@ -777,7 +777,7 @@
                 type: arg.type
               }), {
                 headers: {
-                  authentication: auth.token
+                  authorization: auth.token
                 }
               }
             );
@@ -810,7 +810,7 @@
                   "min-height": minHeight
                 }), {
                   headers: {
-                    authentication: auth.token
+                    authorization: auth.token
                   }
                 }
               );
@@ -821,7 +821,7 @@
               await axios.delete(
                 process.env.MAP_API_ROOT + "/map/zone/" + id, {
                   headers: {
-                    authentication: auth.token
+                    authorization: auth.token
                   }
                 }
               );
@@ -876,7 +876,7 @@
               coordinate: [pinCoord[interestIndex][0], pinCoord[interestIndex][1], parseFloat(arg.height)]
             }), {
               headers: {
-                authentication: auth.token
+                authorization: auth.token
               }
             }
           );
@@ -887,7 +887,7 @@
           await axios.delete(
             process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(interestIndex).id, {
               headers: {
-                authentication: auth.token
+                authorization: auth.token
               }
             }
           );
@@ -1021,7 +1021,7 @@
                 let result = await axios.get(
                   process.env.MAP_API_ROOT + "/map/path/" + pinFeature.item(interestIndex).id, {
                     headers: {
-                      authentication: auth.token
+                      authorization: auth.token
                     }
                   }
                 );
@@ -1032,7 +1032,7 @@
                   let routine = await axios.get(
                     process.env.MAP_API_ROOT + "/map/routine/" + path.routine, {
                       headers: {
-                        authentication: auth.token
+                        authorization: auth.token
                       }
                     }
                   );
