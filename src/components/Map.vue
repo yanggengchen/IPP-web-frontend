@@ -231,7 +231,13 @@
     });
 
     async function refreshPin() {
-      let result = await axios.get(process.env.MAP_API_ROOT + "/map/pinpoint");
+      let result = await axios.get(
+        process.env.MAP_API_ROOT + "/map/pinpoint", {
+          headers: {
+            authentication: auth.token
+          }
+        }
+      );
       pinFeature.clear();
       pinCoord = [];
 
@@ -364,7 +370,11 @@
     });
 
     let refreshZone = async () => {
-      let doc = (await axios.get(process.env.MAP_API_ROOT + "/map/zone")).data;
+      let doc = (await axios.get(process.env.MAP_API_ROOT + "/map/zone", {
+        headers: {
+          authentication: auth.token
+        }
+      })).data;
       zonePoly.clear();
       doc.forEach((item) => {
         let poly = new Feature(new Polygon([item.vertex]));
@@ -426,6 +436,7 @@
       zdiInfo.onDelete = (arg) => {
         freeze = false;
         onDelete.call(zdiInfo, arg);
+        mapHint.show = false;
       };
       zdiInfo.onClose = () => {
         freeze = false;
@@ -534,14 +545,22 @@
           process.env.MAP_API_ROOT + "/map/routine?multi=true",
           qs.stringify({
             POI: POIList
-          })
+          }), {
+            headers: {
+              authentication: auth.token
+            }
+          }
         );
 
         optInterval = setInterval(async () => {
           let routine;
           try {
             routine = await axios.get(
-              process.env.MAP_API_ROOT + "/map/routine/" + result.data.id
+              process.env.MAP_API_ROOT + "/map/routine/" + result.data.id, {
+                headers: {
+                  authentication: auth.token
+                }
+              }
             );
           } catch (e) {
             statusBar.status = "规划路径失败";
@@ -585,14 +604,22 @@
             process.env.MAP_API_ROOT + "/map/routine?multi=true",
             qs.stringify({
               POI: [pinCoord[pinSelection[0]], pinCoord[pinSelection[1]]]
-            })
+            }), {
+              headers: {
+                authentication: auth.token
+              }
+            }
           );
 
           optInterval = setInterval(async () => {
             let routine;
             try {
               routine = await axios.get(
-                process.env.MAP_API_ROOT + "/map/routine/" + result.data.id
+                process.env.MAP_API_ROOT + "/map/routine/" + result.data.id, {
+                  headers: {
+                    authentication: auth.token
+                  }
+                }
               );
             } catch (e) {
               statusBar.status = "规划路径失败";
@@ -641,7 +668,11 @@
             routine: routineID,
             from: pinFeature.item(pinSelection[0]).id,
             to: pinFeature.item(pinSelection[1]).id
-          })
+          }), {
+            headers: {
+              authentication: auth.token
+            }
+          }
         );
       } catch(e) {
         statusBar.status = "路径已存在"
@@ -679,7 +710,11 @@
               type: type,
               vertex: POIList,
               "min-height": minHeight
-            })
+            }), {
+              headers: {
+                authentication: auth.token
+              }
+            }
           );
 
           refreshZone();
@@ -740,7 +775,11 @@
               qs.stringify({
                 coordinate: [e.coordinate[0], e.coordinate[1], parseFloat(arg.height)],
                 type: arg.type
-              })
+              }), {
+                headers: {
+                  authentication: auth.token
+                }
+              }
             );
 
             await refreshPin();
@@ -769,14 +808,22 @@
                 qs.stringify({
                   type: type,
                   "min-height": minHeight
-                })
+                }), {
+                  headers: {
+                    authentication: auth.token
+                  }
+                }
               );
 
               await refreshZone();
             },
             async ({id: id}) => {
               await axios.delete(
-                process.env.MAP_API_ROOT + "/map/zone/" + id
+                process.env.MAP_API_ROOT + "/map/zone/" + id, {
+                  headers: {
+                    authentication: auth.token
+                  }
+                }
               );
 
               refreshZone();
@@ -827,14 +874,22 @@
             qs.stringify({
               type: arg.type,
               coordinate: [pinCoord[interestIndex][0], pinCoord[interestIndex][1], parseFloat(arg.height)]
-            })
+            }), {
+              headers: {
+                authentication: auth.token
+              }
+            }
           );
 
           await refreshPin();
 
         }, async () => {
           await axios.delete(
-            process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(interestIndex).id,
+            process.env.MAP_API_ROOT + "/map/pinpoint/" + pinFeature.item(interestIndex).id, {
+              headers: {
+                authentication: auth.token
+              }
+            }
           );
 
           refreshPin();
@@ -964,14 +1019,22 @@
           setTimeout(async () => {
             if(interestIndex !== preindex && interestIndex !== -1) {
                 let result = await axios.get(
-                  process.env.MAP_API_ROOT + "/map/path/" + pinFeature.item(interestIndex).id
+                  process.env.MAP_API_ROOT + "/map/path/" + pinFeature.item(interestIndex).id, {
+                    headers: {
+                      authentication: auth.token
+                    }
+                  }
                 );
 
                 routinePOI.clear();
                 routineID = "";
                 result.data.forEach(async (path) => {
                   let routine = await axios.get(
-                    process.env.MAP_API_ROOT + "/map/routine/" + path.routine
+                    process.env.MAP_API_ROOT + "/map/routine/" + path.routine, {
+                      headers: {
+                        authentication: auth.token
+                      }
+                    }
                   );
 
                   let LINE = new Feature(new LineSting([routine.data.POI[0], routine.data.routine[0]]));

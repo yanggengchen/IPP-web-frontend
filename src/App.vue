@@ -1,20 +1,83 @@
 <template>
   <div id="app">
-    <nav>
-      <ul class="nav--list">
-        <li class="nav--logo"><a href="/#/">无人机物流系统——管理系统</a></li>
-        <router-link v-for="(router, index) in routers" :to="{name: router.name}" class="nav--item" exact tag="li" :key="index">{{router.meta.disp}}</router-link>
-      </ul>
-    </nav>
-    <router-view class="main"/>
+    <div id="main" v-if="auth.token">
+      <nav>
+        <ul class="nav--list">
+          <li class="nav--logo"><a href="/#/">无人机物流系统——管理系统</a></li>
+          <router-link v-for="(router, index) in routers" :to="{name: router.name}" class="nav--item" exact tag="li"
+                       :key="index">{{router.meta.disp}}
+          </router-link>
+        </ul>
+      </nav>
+      <router-view class="main"/>
+    </div>
+    <div id="login" v-if="!auth.token">
+      <div class="panel--container">
+        <div class="panel panel-default">
+          <div class="panel-header" style="text-align: center;">
+            <h3 class="panel-title">
+              管理登录
+            </h3>
+          </div>
+          <div class="panel-body">
+            <form role="form" class="form-horizontal">
+              <div class="form-group form-row">
+                <label for="username">
+                  用户名:
+                </label>
+                <input type="text" class="form-control" name="username" id="username" required v-model="form.username">
+              </div>
+              <div class="form-group form-row">
+                <label for="password">
+                  密码:
+                </label>
+                <input type="password" class="form-control" name="password" id="password" required v-model="form.password">
+              </div>
+              <div style="text-align: center;">
+                <p class="help-block red" v-if="loginStatus.fail">登陆失败</p>
+                <button type="button" id="submit" class="btn-default" v-on:click="submit">登录</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+  import axios from "axios"
+  import qs from "qs"
+  import crypto from "crypto"
+
+  let loginStatus = { fail: false };
+
   export default {
+    methods: {
+      async submit() {
+        let result = await axios.post(process.env.AUTH_API_ROOT + "/auth?json=true", qs.stringify({
+          username: this.form.username,
+          password: crypto.createHash("sha256").update(this.form.password + "123").digest("base64")
+        }));
+        if(result.data.token) {
+          auth.token = result.data.token;
+          auth.expires = result.data.expires;
+          loginStatus.fail = false;
+        } else {
+          loginStatus.fail = true;
+        }
+      }
+    },
     data() {
+      this.form = {
+        username: "",
+        password: ""
+      };
       return {
-        routers: this.$router.options.routes
+        routers: this.$router.options.routes,
+        auth,
+        form: this.form,
+        loginStatus
       }
     }
   }
@@ -57,7 +120,7 @@
     alignment: center;
 
     overflow: hidden;
-    white-space:nowrap;
+    white-space: nowrap;
 
     -moz-user-select: none; /*火狐*/
     -webkit-user-select: none; /*webkit浏览器*/
@@ -130,5 +193,38 @@
   .main {
     margin-top: 3rem;
     height: calc(100% - 3rem);
+  }
+
+  #login {
+    background-color: lightgrey;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .panel {
+    background-color: white;
+    padding: 1rem 2rem 1rem 2rem;
+    border-radius: .3rem;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .panel--container {
+    position: absolute;
+
+    z-index: 999;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+  }
+
+  .red {
+    color: red;
   }
 </style>

@@ -15,6 +15,24 @@ import 'babel-polyfill'
 import Promise from 'es6-promise'
 require("es6-promise").polyfill();
 
+import axios from "axios"
+
+window.auth = {
+  token: "",
+};
+
+setInterval(async () => {
+  if(auth.token) {
+    let result = await axios.get(
+      process.env.AUTH_API_ROOT + "/auth?json=true&update=true&token=" + auth.token
+    );
+    if(result.data.token) {
+      auth.token = result.data.token;
+      auth.expires = result.data.expires;
+    }
+  }
+}, 5000);
+
 
 Vue.config.productionTip = false;
 
