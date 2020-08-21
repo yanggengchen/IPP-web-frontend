@@ -7,6 +7,8 @@
           <router-link v-for="(router, index) in routers" :to="{name: router.name}" class="nav--item" exact tag="li"
                        :key="index">{{router.meta.disp}}
           </router-link>
+        </ul>
+        <ul class="nav--list">
           <li class="nav--item right"><a href="/#/">退出登录</a></li>
         </ul>
       </nav>
@@ -143,6 +145,8 @@
     -ms-user-select: none; /*IE10*/
     -khtml-user-select: none; /*早期浏览器*/
     user-select: none;
+
+    justify-content: space-between;
   }
 
   .nav--list {
@@ -155,6 +159,7 @@
     -webkit-box-pack: end;
     -ms-flex-pack: end;
     justify-content: flex-end;
+    margin-right: 40px;
   }
 
   .nav--logo {

@@ -1,24 +1,17 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HelloWorld from '@/components/HelloWorld'
-import OLTest from '@/components/OLTest'
 import Map from '@/components/Map'
+import Order from '@/components/Order'
 
 Vue.use(Router);
 
 export default new Router({
   routes: [
     {
-      path: '/',
-      name: 'Hello',
-      component: HelloWorld,
-      meta: {title: "无人机物流-订单管理", disp: "订单管理"}
-    },
-    {
-      path: "/flight",
-      name: "Flight",
+      path: "/",
+      name: "Hardware",
       component: null,
-      meta: {title: "无人机物流-航路情况", disp: "航路情况"}
+      meta: {title: "无人机物流-硬件管理", disp: "硬件管理"}
     },
     {
       path: "/map",
@@ -27,10 +20,10 @@ export default new Router({
       meta: {title: "无人机物流-地图规划", disp: "地图规划"}
     },
     {
-      path: "/weather",
-      name: "Weather",
-      component: null,
-      meta: {title: "无人机物流-天气分析", disp: "天气分析"}
+      path: '/order',
+      name: 'Order',
+      component: Order,
+      meta: {title: "无人机物流-订单管理", disp: "订单管理"}
     }
   ]
 })
