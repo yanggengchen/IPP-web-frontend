@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Map from '@/components/Map'
 import Order from '@/components/Order'
+import Hardware from "@/components/Hardware";
 
 Vue.use(Router);
 
@@ -10,7 +11,7 @@ export default new Router({
     {
       path: "/",
       name: "Hardware",
-      component: null,
+      component: Hardware,
       meta: {title: "无人机物流-硬件管理", disp: "硬件管理"}
     },
     {
