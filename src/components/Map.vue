@@ -748,6 +748,9 @@ function loadMap() {
         POIList = [realCoordinate];
         point.type = "start";
 
+        statusBar.status = "EPSG3857: " + realCoordinate[0].toString() + ", " + realCoordinate[1].toString() +
+          ", EPSG4326: " + proj.transform(realCoordinate, "EPSG:3857", "EPSG:4326").join(", ")
+
         planPOI.clear();
         routinePOI.clear();
         routineID = "";
@@ -840,6 +843,9 @@ function loadMap() {
       if (tbMagnet || magnet) realCoordinate = magMousepos;
       let point = new Feature(new Point(realCoordinate));
       let line = new Feature(new LineSting([POIList[POIList.length - 1], realCoordinate]));
+
+      statusBar.status = "EPSG3857: " + realCoordinate[0].toString() + ", " + realCoordinate[1].toString() +
+          ", EPSG4326: " + proj.transform(realCoordinate, "EPSG:3857", "EPSG:4326").join(", ");
       point.type = "POI";
       POIList.push(realCoordinate);
       planPOI.push(line);
