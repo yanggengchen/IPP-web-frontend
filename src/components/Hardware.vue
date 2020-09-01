@@ -39,6 +39,8 @@ import qs from "qs"
 
 import EventEmitter from "events"
 
+import Toolbar from "./olComponents/toolbar/toolbar"
+
 import Dialog from "./hardwareManagement/components/dialog/Dialog"
 
 import Garage from "./hardwareManagement/layers/Garage"
@@ -88,6 +90,18 @@ async function loadMap() {
       rotate: false
     })
   });
+
+  let toolbar = new Toolbar({
+    elements: [
+      {
+        type: "button",
+        text: 1
+      }
+    ]
+  });
+
+  map.addControl(toolbar);
+
 
   garage.registerParent(map);
 
