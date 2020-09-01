@@ -87,6 +87,8 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
       }
     };
 
+    let associations = [];
+
     let DSLCreate = (group) => {
       if(group instanceof Array) { // 创建列表
         let result = []
@@ -101,7 +103,12 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
               eventHandler = group.event,
               hint = group.hint,
               toggle = group.toggle || false,
-              radioGroup = group.radioGroup || "";
+              radioGroup = group.radioGroup || "",
+              exact = group.hasOwnProperty("exact") ? group.exact : true;
+            if(group.icon) {
+              text = "<span class='vj4-icon icon-" + group.icon + "'></span>"
+            }
+            if(group.association || group.radioGroup) toggle = true;
             let result = createButton(
               text,
               () => {
@@ -109,9 +116,14 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
               },
               hint,
               toggle,
-              radioGroup);
+              radioGroup,
+              exact);
             if(group.association)
-              createAssociation(result, group.association, radioGroup);
+              associations.push({
+                element: result,
+                group: group.association,
+                radio: radioGroup
+              });
             return result;
           case "group":
             let name = group.name;
@@ -122,7 +134,14 @@ export var ToolBar = /*@__PURE__*/(function (Control) {
       }
     }
 
-    if(options.elements) DSLCreate(options.elements);
+    if(options.elements) {
+      DSLCreate(options.elements);
+      if(associations.length !== 0) {
+        associations.forEach((ass) => {
+          createAssociation(ass.element, ass.group, ass.radio)
+        })
+      }
+    }
 
     this.element.children().tooltip({
       placement: 'right',
