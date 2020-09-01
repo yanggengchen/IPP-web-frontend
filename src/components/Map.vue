@@ -45,7 +45,7 @@ import OSM from "ol/source/OSM"
 
 import * as interaction from "ol/interaction"
 import * as control from "ol/control"
-import {PlanToolBar} from "./olToolbar/toolbar"
+import {PlanToolBar} from "./Map/olToolbar/toolbar"
 
 import Collection from "ol/Collection"
 import VectorLayer from "ol/layer/Vector"
@@ -61,8 +61,8 @@ import axios from "axios"
 import qs from "qs"
 
 import EventEmitter from "events"
-import ZoneDataInput from "./dataInputModule/zoneDataInput";
-import PinDataInput from "./dataInputModule/pinDataInput";
+import ZoneDataInput from "./Map/dataInputModule/zoneDataInput";
+import PinDataInput from "./Map/dataInputModule/pinDataInput";
 
 import pinImg from "@/assets/vendor/icon/pin.png"
 import newPinImg from "@/assets/vendor/icon/newPin.png"
