@@ -50,6 +50,7 @@ const Garage = (() => {
   let interestedGarage = -1;
   let garageFeature = new Collection();
   let dblInterval = -1;
+  let eventEnabled = true;
 
   function search(coords) {
     for (let i = 0; i < garage.length; i += 1) {
@@ -61,7 +62,7 @@ const Garage = (() => {
   class Garage extends EventEmitter {
     constructor() {
       super();
-      this.garageLayer = new VectorLayer({
+      this.layer = new VectorLayer({
         source: new VectorSource({
           features: garageFeature
         }),
@@ -76,6 +77,7 @@ const Garage = (() => {
 
     async reload() {
       // 添加或移除机库时这里会出现问题,目前不影响但是以后最好要改
+      eventEnabled = false;
       let garageList = (await axios.get(process.env.BUSINESS_API_ROOT + "/business/garage",
             {
               headers: {
@@ -120,6 +122,7 @@ const Garage = (() => {
         }
       }
       garage = garageList;
+      eventEnabled = true;
     }
 
     style(feature) {
@@ -162,12 +165,14 @@ const Garage = (() => {
     }
 
     onPointerMove(e) {
+      if(!eventEnabled) return;
       interestedGarage = search(e.coordinate);
       //garageFeature.changed();
       garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
     }
 
     onClick(e) {
+      if(!eventEnabled) return;
       if (interestedGarage !== -1) {
         if(dblInterval === -1) {
           this.emit("click", garage[interestedGarage])
@@ -185,6 +190,15 @@ const Garage = (() => {
 
     getInterest() {
       return garage[interestedGarage];
+    }
+
+    enableEvent() {
+      eventEnabled = true;
+    }
+
+    disableEvent() {
+      eventEnabled = false;
+      interestedGarage = -1;
     }
   }
 
