@@ -93,7 +93,7 @@ export default {
             }
           }
       );
-      this.event.emit("refreshGarage");
+      this.event.emit("refresh-garage");
     },
     async del(id) {
       let response = await axios.delete(process.env.BUSINESS_API_ROOT + "/business/product/" + id,
@@ -103,7 +103,7 @@ export default {
             }
           }
       );
-      this.event.emit("refreshGarage");
+      this.event.emit("refresh-garage");
     }
   },
   data() {
