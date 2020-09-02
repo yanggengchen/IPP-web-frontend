@@ -13,40 +13,20 @@
 </template>
 
 <script>
-import "ol/ol.css"
-import {Map, View} from "ol"
-
 import TileLayer from "ol/layer/Tile"
 
 import * as proj from "ol/proj"
 import OSM from "ol/source/OSM"
 
-import * as interaction from "ol/interaction"
-import * as control from "ol/control"
-
-import Collection from "ol/Collection"
-import VectorLayer from "ol/layer/Vector"
-import VectorSource from "ol/source/Vector"
-import Feature from "ol/Feature"
-import LineSting from "ol/geom/LineString"
-import Point from "ol/geom/Point"
-import Polygon from "ol/geom/Polygon"
-
-import * as style from "ol/style"
-
-import axios from "axios"
-import qs from "qs"
-
-import EventEmitter from "events"
-
 import Toolbar from "./olComponents/toolbar/toolbar"
 
-import Dialog from "./hardwareManagement/components/dialog/Dialog"
+import MapExt from "./hardwareManagement/MapExt"
 
 import Garage from "./hardwareManagement/layers/Garage"
+import Drone from "./hardwareManagement/layers/Drone";
 
+import Dialog from "./hardwareManagement/components/dialog/Dialog"
 import dlgGarage from "./hardwareManagement/components/dialog/dlgGarage"
-
 let dialog = new Dialog;
 
 async function loadMap() {
@@ -58,64 +38,96 @@ async function loadMap() {
 
   // 加载机库
   let garage = new Garage();
+  let drone = new Drone();
 
-  // 加载航线
-  let flightFeature = new Collection();
-  let flightLayer = new VectorLayer({
-    source: new VectorSource({
-      feature: flightFeature
-    }),
-    style() {
-
-    }
-  });
-
-  let map = new Map({
-    target: "map",
-    layers: [
+  // 加载地图
+  let map = new MapExt("map", [
       mapLayer,
-      garage.garageLayer,
-      flightLayer
-    ],
-    view: new View({
-      center: [13519023.565173406, 3636438.266781322],
-      rotation: /*Math.PI / 10*/ 0,
-      zoom: 17.992819590157538,
-    }),
-    interactions: new interaction.defaults({
-      doubleClickZoom: false,   //屏蔽双击放大事件
-      shiftDragZoom: false
-    }),
-    controls: new control.defaults({
-      rotate: false
-    })
-  });
+      garage.layer,
+      drone.layer
+    ])
 
+  // 加载工具栏
   let toolbar = new Toolbar({
     elements: [
       {
         type: "button",
-        text: 1
+        icon: "wrench",
+        event: "hardware",
+        radioGroup: "function",
+        exact: false,
+        hint: "硬件信息"
+      },
+      {
+        type: "button",
+        icon: "tag",
+        event: "order",
+        radioGroup: "function",
+        hint: "订单信息",
+        association: "order"
+      },
+      {
+        type: "button",
+        icon: "send",
+        event: "drone",
+        radioGroup: "function",
+        hint: "无人机信息",
+        association: "drone"
+      },
+      {type: "ws"},
+      {
+        type: "group",
+        name: "drone",
+        elements: [
+          {
+            type: "button",
+            icon: "search",
+            event: "search-drone",
+            hint: "查询无人机"
+          }
+        ]
+      },
+      {
+        type: "group",
+        name: "order",
+        elements: [
+          {
+            type: "button",
+            icon: "search",
+            event: "search-order",
+            hint: "查询订单"
+          }
+        ]
       }
     ]
   });
-
   map.addControl(toolbar);
+  toolbar.event.on("hardware", () => {
+    garage.enableEvent();
+  })
+  toolbar.event.on("order", () => {
+    garage.disableEvent();
+  })
+  toolbar.event.on("drone", () => {
+    garage.disableEvent();
+  })
 
-
+  // 注册图层
   garage.registerParent(map);
+  drone.registerParent(map);
 
+  // 图层事件
   garage.on("click", (g) => {
     dialog.register(dlgGarage);
     dialog.trigger(g);
   });
 
-  dialog.on("refreshGarage", () => {
+  // 对话框事件
+  dialog.on("refresh-garage", () => {
     garage.reload().then(() => {
       dialog.trigger(garage.getInterest());
     });
   })
-
   dialog.on("close", () => {
     garage.clearInterest();
   })
