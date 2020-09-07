@@ -23,7 +23,8 @@ import Toolbar from "./olComponents/toolbar/toolbar"
 import MapExt from "./hardwareManagement/MapExt"
 
 import Garage from "./hardwareManagement/layers/Garage"
-import Drone from "./hardwareManagement/layers/Drone";
+import Drone from "./hardwareManagement/layers/Drone"
+import Flight from "./hardwareManagement/layers/Flight"
 
 import Dialog from "./hardwareManagement/components/dialog/Dialog"
 import dlgGarage from "./hardwareManagement/components/dialog/dlgGarage"
@@ -38,12 +39,14 @@ async function loadMap() {
 
   // 加载机库
   let garage = new Garage();
+  let flight = new Flight();
   let drone = new Drone();
 
   // 加载地图
   let map = new MapExt("map", [
       mapLayer,
       garage.layer,
+      flight.layer,
       drone.layer
     ])
 
@@ -104,12 +107,15 @@ async function loadMap() {
   map.addControl(toolbar);
   toolbar.event.on("hardware", () => {
     garage.enableEvent();
+    drone.disableEvent();
   })
   toolbar.event.on("order", () => {
     garage.disableEvent();
+    drone.disableEvent();
   })
   toolbar.event.on("drone", () => {
     garage.disableEvent();
+    drone.enableEvent();
   })
 
   // 注册图层
@@ -121,6 +127,11 @@ async function loadMap() {
     dialog.register(dlgGarage);
     dialog.trigger(g);
   });
+  drone.on("load-flight", (id) => {
+    flight.load(id).then(() => {
+      flight.show();
+    })
+  })
 
   // 对话框事件
   dialog.on("refresh-garage", () => {

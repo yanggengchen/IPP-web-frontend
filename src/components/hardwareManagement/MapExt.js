@@ -53,6 +53,10 @@ export var MapExt = (() => {
       this.map.addControl(control);
       controls.push(control);
     }
+
+    getZoom() {
+      return this.map.getView().getZoom();
+    }
   }
 })();
 
