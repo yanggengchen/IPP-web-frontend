@@ -28,6 +28,7 @@ import Flight from "./hardwareManagement/layers/Flight"
 
 import Dialog from "./hardwareManagement/components/dialog/Dialog"
 import dlgGarage from "./hardwareManagement/components/dialog/dlgGarage"
+import dlgDrone from "./hardwareManagement/components/dialog/dlgDrone";
 let dialog = new Dialog;
 
 async function loadMap() {
@@ -108,14 +109,17 @@ async function loadMap() {
   toolbar.event.on("hardware", () => {
     garage.enableEvent();
     drone.disableEvent();
-  })
+  });
   toolbar.event.on("order", () => {
     garage.disableEvent();
     drone.disableEvent();
-  })
+  });
   toolbar.event.on("drone", () => {
     garage.disableEvent();
     drone.enableEvent();
+  });
+  toolbar.event.on("search-drone", () => {
+
   })
 
   // 注册图层

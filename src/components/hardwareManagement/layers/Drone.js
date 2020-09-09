@@ -150,6 +150,10 @@ const Drone = (() => {
       eventEnabled = false;
       interest = -1;
     }
+
+    getDroneList() {
+      return drone;
+    }
   }
 
   return Drone;
