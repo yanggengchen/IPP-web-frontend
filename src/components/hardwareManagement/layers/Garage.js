@@ -99,8 +99,8 @@ const Garage = (() => {
         ppFeature.new = pinpoint.new;
         garageFeature.push(ppFeature);
 
-        for(let j = 0; i < garage.products.length; i++) {
-          garage.products[i] = (await axios.get(process.env.BUSINESS_API_ROOT + "/business/product/" + garage.products[i].$id,
+        for(let j = 0; j < garage.products.length; j++) {
+          garage.products[j] = (await axios.get(process.env.BUSINESS_API_ROOT + "/business/product/" + garage.products[j].$id,
             {
               headers: {
                 authorization: auth.token

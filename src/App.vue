@@ -9,7 +9,7 @@
           </router-link>
         </ul>
         <ul class="nav--list">
-          <li class="nav--item right"><a href="/#/">退出登录</a></li>
+          <li class="nav--item right"><a href="/#/" @click="logout">退出登录</a></li>
         </ul>
       </nav>
       <router-view class="main"/>
@@ -79,6 +79,11 @@
         } else {
           loginStatus.fail = true;
         }
+      },
+      logout() {
+        axios.delete(process.env.AUTH_API_ROOT + "/auth?json=true").then(() => {
+          this.auth.token = "";
+        });
       }
     },
     data() {
