@@ -61,6 +61,9 @@ export var MapExt = (() => {
     unmount() {
       this.emit("unmount");
       this.removeAllListeners();
+      controls.forEach((item) => {
+        item.event.removeAllListeners();
+      })
     }
   }
 })();

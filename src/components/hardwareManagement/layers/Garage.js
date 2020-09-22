@@ -156,7 +156,7 @@ const Garage = (() => {
 
     refresh() {
       if(garageFeature.getLength())
-        garageFeature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+        garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
       else {
         garageFeature.push(new Feature());
         garageFeature.pop();
