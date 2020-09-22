@@ -161,7 +161,7 @@ export default {
     loadMap()
   },
   destroyed() {
-    map.emit("unmount");
+    map.unmount();
   }
 }
 </script>

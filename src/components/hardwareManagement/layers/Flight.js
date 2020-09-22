@@ -98,6 +98,10 @@ export var Flight = (() => {
       visible = false;
       this.refresh();
     }
+
+    onUnmount() {
+      this.removeAllListeners();
+    }
   }
 })();
 

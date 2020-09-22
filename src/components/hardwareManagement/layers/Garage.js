@@ -208,6 +208,10 @@ const Garage = (() => {
       eventEnabled = false;
       interestedGarage = -1;
     }
+
+    onUnmount() {
+      this.removeAllListeners();
+    }
   }
 
   return Garage;

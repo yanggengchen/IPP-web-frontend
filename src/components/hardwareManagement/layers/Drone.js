@@ -166,6 +166,7 @@ const Drone = (() => {
 
     onUnmount() {
       clearInterval(updateInterval);
+      this.removeAllListeners();
     }
   }
 
