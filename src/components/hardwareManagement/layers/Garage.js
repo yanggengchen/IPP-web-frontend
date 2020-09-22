@@ -10,8 +10,6 @@ import Polygon from "ol/geom/Polygon"
 
 import EventEmitter from "events"
 
-import {mixto} from "../../../utils/oop"
-
 import pinImg from "@/assets/vendor/icon/pin.png"
 import newPinImg from "@/assets/vendor/icon/newPin.png"
 
@@ -64,12 +62,12 @@ const Garage = (() => {
   class Garage extends EventEmitter {
     constructor() {
       super();
-      mixto(this, new VectorLayer({
+      this.layer = new VectorLayer({
         source: new VectorSource({
           features: garageFeature
         }),
         style: this.style
-      }));
+      });
       this.reload().then(() => {
         this.emit("load");
       }).catch((reason) => {
@@ -124,7 +122,6 @@ const Garage = (() => {
         }
       }
       garage = garageList;
-      this.changed();
       eventEnabled = true;
     }
 
@@ -157,6 +154,15 @@ const Garage = (() => {
       }
     }
 
+    refresh() {
+      if(garageFeature.getLength())
+        garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
+      else {
+        garageFeature.push(new Feature());
+        garageFeature.pop();
+      }
+    }
+
     registerParent(map) {
       this.parent = map;
       map.on("pointermove", (e) => {
@@ -170,7 +176,7 @@ const Garage = (() => {
     onPointerMove(e) {
       if(!eventEnabled) return;
       interestedGarage = search(e.coordinate);
-      this.changed();
+      this.refresh();
     }
 
     onClick(e) {
@@ -187,7 +193,7 @@ const Garage = (() => {
 
     clearInterest() {
       interestedGarage = -1;
-      this.changed();
+      this.refresh();
     }
 
     getInterest() {

@@ -11,8 +11,6 @@ import EventEmitter from "events"
 
 import * as style from "ol/style";
 
-import {mixto} from "../../../utils/oop"
-
 import drone_4 from "@/assets/vendor/icon/drone-4.png"
 import drone_6 from "@/assets/vendor/icon/drone-6.png"
 
@@ -62,12 +60,12 @@ const Drone = (() => {
     constructor() {
       super();
       object = this;
-      mixto(this, new VectorLayer({
+      this.layer = new VectorLayer({
         source: new VectorSource({
           features: feature
         }),
         style: this.style
-      }));
+      });
       this.reload().then(() => {
         this.emit("load");
       }).catch((reason) => {
@@ -95,7 +93,15 @@ const Drone = (() => {
         feature.push(point);
         eventEnabled = _event_enabled
       }
-      this.changed();
+    }
+
+    refresh() {
+      if(feature.getLength())
+        feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      else {
+        feature.push(new Feature());
+        feature.pop();
+      }
     }
 
     style(feature) {

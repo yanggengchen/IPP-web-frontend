@@ -12,8 +12,6 @@ import LineString from "ol/geom/LineString"
 
 import * as style from "ol/style";
 
-import {mixto} from "../../../utils/oop"
-
 import arrow from "@/assets/vendor/icon/arrow.png"
 
 export var Flight = (() => {
@@ -23,12 +21,12 @@ export var Flight = (() => {
   return class Flight extends EventEmitter {
     constructor() {
       super();
-      mixto(this, new VectorLayer({
+      this.layer = new VectorLayer({
         source: new VectorSource({
           features: feature
         }),
         style: this.style
-      }))
+      });
     }
 
     style(feature) {
@@ -66,6 +64,10 @@ export var Flight = (() => {
       return styles;
     }
 
+    refresh() {
+      feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+    }
+
     /**
      * 加载某个无人机的航路信息
      * @param id
@@ -85,17 +87,16 @@ export var Flight = (() => {
         }
         last = dataArray[i].coordinates;
       }
-      this.changed();
     }
 
     show() {
       visible = true;
-      this.changed();
+      this.refresh();
     }
 
     hide() {
       visible = false;
-      this.changed();
+      this.refresh();
     }
 
     onUnmount() {
