@@ -96,7 +96,12 @@ const Drone = (() => {
     }
 
     refresh() {
-      feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      if(feature.getLength())
+        feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      else {
+        feature.push(new Feature());
+        feature.pop();
+      }
     }
 
     style(feature) {
