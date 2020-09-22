@@ -109,7 +109,6 @@ export default {
   data() {
     let long = toLonLat(this.args.center.coordinate, "EPSG:3857")[0];
     let lat = toLonLat(this.args.center.coordinate, "EPSG:3857")[1];
-    console.log(this.args);
     this.formdata = {
       id: this.args._id,
       longitude: Math.abs(Math.round(long * 100) / 100).toString() + ((long > 0) ? "°E" : "°W"),

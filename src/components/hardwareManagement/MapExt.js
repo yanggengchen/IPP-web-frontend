@@ -57,6 +57,14 @@ export var MapExt = (() => {
     getZoom() {
       return this.map.getView().getZoom();
     }
+
+    unmount() {
+      this.emit("unmount");
+      this.removeAllListeners();
+      controls.forEach((item) => {
+        item.event.removeAllListeners();
+      })
+    }
   }
 })();
 

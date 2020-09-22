@@ -46,6 +46,7 @@ const Drone = (() => {
   let feature = new Collection();
   let eventEnabled = false;
   let interest = -1;
+  let updateInterval = 0;
   let object;
 
   function search(coords) {
@@ -70,7 +71,7 @@ const Drone = (() => {
       }).catch((reason) => {
         this.emit("error", reason);
       });
-      setInterval(() => {
+      updateInterval = setInterval(() => {
         this.reload().then(() => {
           this.emit("load");
         }).catch((reason) => {
@@ -95,7 +96,7 @@ const Drone = (() => {
     }
 
     refresh() {
-      feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.layer.changed();
     }
 
     style(feature) {
@@ -118,6 +119,9 @@ const Drone = (() => {
       map.on("click", (e) => {
         this.onClick(e);
       });
+      map.on("unmount", (e) => {
+        this.onUnmount();
+      })
     }
 
     onPointerMove(e) {
@@ -153,6 +157,11 @@ const Drone = (() => {
 
     getDroneList() {
       return drone;
+    }
+
+    onUnmount() {
+      clearInterval(updateInterval);
+      this.removeAllListeners();
     }
   }
 

@@ -65,7 +65,7 @@ export var Flight = (() => {
     }
 
     refresh() {
-      feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.layer.changed();
     }
 
     /**
@@ -97,6 +97,10 @@ export var Flight = (() => {
     hide() {
       visible = false;
       this.refresh();
+    }
+
+    onUnmount() {
+      this.removeAllListeners();
     }
   }
 })();

@@ -99,8 +99,8 @@ const Garage = (() => {
         ppFeature.new = pinpoint.new;
         garageFeature.push(ppFeature);
 
-        for(let j = 0; i < garage.products.length; i++) {
-          garage.products[i] = (await axios.get(process.env.BUSINESS_API_ROOT + "/business/product/" + garage.products[i].$id,
+        for(let j = 0; j < garage.products.length; j++) {
+          garage.products[j] = (await axios.get(process.env.BUSINESS_API_ROOT + "/business/product/" + garage.products[j].$id,
             {
               headers: {
                 authorization: auth.token
@@ -154,6 +154,10 @@ const Garage = (() => {
       }
     }
 
+    refresh() {
+      this.layer.changed();
+    }
+
     registerParent(map) {
       this.parent = map;
       map.on("pointermove", (e) => {
@@ -167,8 +171,7 @@ const Garage = (() => {
     onPointerMove(e) {
       if(!eventEnabled) return;
       interestedGarage = search(e.coordinate);
-      //garageFeature.changed();
-      garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.refresh();
     }
 
     onClick(e) {
@@ -185,7 +188,7 @@ const Garage = (() => {
 
     clearInterest() {
       interestedGarage = -1;
-      garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.refresh();
     }
 
     getInterest() {
@@ -199,6 +202,10 @@ const Garage = (() => {
     disableEvent() {
       eventEnabled = false;
       interestedGarage = -1;
+    }
+
+    onUnmount() {
+      this.removeAllListeners();
     }
   }
 

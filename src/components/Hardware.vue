@@ -30,6 +30,7 @@ import Dialog from "./hardwareManagement/components/dialog/Dialog"
 import dlgGarage from "./hardwareManagement/components/dialog/dlgGarage"
 import dlgDrone from "./hardwareManagement/components/dialog/dlgDrone";
 let dialog = new Dialog;
+let map;
 
 async function loadMap() {
   // 加载地图层
@@ -44,7 +45,7 @@ async function loadMap() {
   let drone = new Drone();
 
   // 加载地图
-  let map = new MapExt("map", [
+  map = new MapExt("map", [
       mapLayer,
       garage.layer,
       flight.layer,
@@ -158,6 +159,10 @@ export default {
   },
   mounted() {
     loadMap()
+  },
+  destroyed() {
+    map.unmount();
+    dialog.removeAllListeners();
   }
 }
 </script>
