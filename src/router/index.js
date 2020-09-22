@@ -12,25 +12,25 @@ export default new Router({
     {
       path: "/",
       name: "Hardware",
-      component: Hardware,
+      component: resolve => require(["@/components/Hardware"], resolve),
       meta: {title: "无人机物流-硬件管理", disp: "硬件管理"}
     },
     {
       path: "/map",
       name: "Map",
-      component: Map,
+      component:  resolve => require(["@/components/Map"], resolve),
       meta: {title: "无人机物流-地图规划", disp: "地图规划"}
     },
     {
       path: '/order',
       name: 'Order',
-      component: Order,
+      component:  resolve => require(["@/components/Order"], resolve),
       meta: {title: "无人机物流-订单管理", disp: "订单管理"}
     },
     {
       path: '/user',
       name: 'User',
-      component: User,
+      component:  resolve => require(["@/components/User"], resolve),
       meta: {title: "无人机物流-用户管理", disp: "用户管理"}
     }
   ]
