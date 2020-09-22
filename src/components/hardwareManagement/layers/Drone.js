@@ -96,12 +96,7 @@ const Drone = (() => {
     }
 
     refresh() {
-      if(feature.getLength())
-        feature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
-      else {
-        feature.push(new Feature());
-        feature.pop();
-      }
+      this.layer.changed();
     }
 
     style(feature) {
