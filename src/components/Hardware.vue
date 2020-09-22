@@ -47,9 +47,9 @@ async function loadMap() {
   // 加载地图
   map = new MapExt("map", [
       mapLayer,
-      garage.layer,
-      flight.layer,
-      drone.layer
+      garage,
+      flight,
+      drone
     ])
 
   // 加载工具栏
