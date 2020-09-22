@@ -154,6 +154,15 @@ const Garage = (() => {
       }
     }
 
+    refresh() {
+      if(garageFeature.getLength())
+        garageFeature.push(feature.pop()); // TODO: 找到不那么暴力的刷新方法
+      else {
+        garageFeature.push(new Feature());
+        garageFeature.pop();
+      }
+    }
+
     registerParent(map) {
       this.parent = map;
       map.on("pointermove", (e) => {
@@ -167,8 +176,7 @@ const Garage = (() => {
     onPointerMove(e) {
       if(!eventEnabled) return;
       interestedGarage = search(e.coordinate);
-      //garageFeature.changed();
-      garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.refresh();
     }
 
     onClick(e) {
@@ -185,7 +193,7 @@ const Garage = (() => {
 
     clearInterest() {
       interestedGarage = -1;
-      garageFeature.push(garageFeature.pop()); // TODO: 找到不那么暴力的刷新方法
+      this.refresh();
     }
 
     getInterest() {
